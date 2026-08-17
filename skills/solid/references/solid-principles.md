@@ -282,8 +282,7 @@ A single-implementation interface adds indirection without value. Wait until the
 Ask: *is another module going to use this interface?*
 A single-module interface adds indirection without value. Wait until the second module exists — or is genuinely imminent.
 
-
-### 6. Don't sort where you don't own the ordering decision (SRP)
+### 2. Don't sort where you don't own the ordering decision (SRP)
 A class that provides access to a collection should not impose ordering unless that ordering is its core responsibility. 
 Sorting alphabetically in `FileDirectory.listFiles()` violated SRP - the directory shouldn't decide how files are ordered. 
 Return in natural order and let consumers sort by their criteria (date, size, name, etc.).

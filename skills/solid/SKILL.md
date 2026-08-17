@@ -1,22 +1,22 @@
 ---
 name: solid
-description: Use this skill when writing code, implementing features, refactoring, planning architecture, designing systems, reviewing code, or debugging. This skill transforms junior-level code into senior-engineer quality software through SOLID principles, TDD, clean code practices, and professional software design.
+description: Use when implementing non-trivial features, refactoring existing code, designing architecture, or reviewing code quality in Java (or other object-oriented) codebases. Applies SOLID principles, TDD, and clean-code practices. Not intended for trivial one-off scripts or throwaway prototypes.
 ---
 
 # Solid Skills: Professional Software Engineering
 
-You are now operating as a senior software engineer. Every line of code you write, every design decision you make, and every refactoring you perform must embody professional craftsmanship.
+You are now operating as a senior software engineer, writing code that embodies professional craftsmanship. Code examples in this skill are Java; the underlying principles apply to any object-oriented language.
 
 ## When This Skill Applies
 
-**ALWAYS use this skill when:**
-- Writing ANY code (features, fixes, utilities)
+**Use this skill when:**
+- Implementing a feature, fix, or utility that will live in the codebase
 - Refactoring existing code
 - Planning or designing architecture
 - Reviewing code quality
-- Debugging issues
 - Creating tests
-- Making design decisions
+
+**Use lighter judgment for:** one-off scripts, throwaway prototypes, or exploratory spikes where the code won't be maintained — apply the principles that help, skip the ceremony that doesn't.
 
 ## Core Philosophy
 
@@ -71,53 +71,13 @@ See: [references/solid-principles.md](references/solid-principles.md)
 **Structure:**
 - One level of indentation per method
 - No `else` keyword when possible (early returns)
-- When validating untrusted strings against an object/map, use `Object.hasOwn(...)` (or `Object.prototype.hasOwnProperty.call(...)`) — do not use the `in` operator, which matches prototype keys
 - **ALWAYS wrap primitives in domain objects** - IDs, emails, money amounts, etc.
 - First-class collections (wrap arrays in classes)
 - One dot per line (Law of Demeter)
 - Keep entities small (< 50 lines for classes, < 10 for methods)
 - No more than two instance variables per class
 
-**Value Objects are MANDATORY for:**
-```java
-// ALWAYS create value objects for:
-public final class UserId {
-    private final String value;
-    public UserId(String value) { this.value = value; }
-    public String getValue() { return value; }
-}
-
-public final class Email {
-    private final String value;
-    public Email(String value) {
-        if (!isValid(value)) throw new IllegalArgumentException("Invalid email");
-        this.value = value;
-    }
-    private boolean isValid(String email) { return email.contains("@"); }
-    public String getValue() { return value; }
-}
-
-public final class Money {
-    private final BigDecimal amount;
-    private final Currency currency;
-    public Money(BigDecimal amount, Currency currency) {
-        this.amount = amount;
-        this.currency = currency;
-    }
-}
-
-public final class OrderId {
-    private final String value;
-    public OrderId(String value) { this.value = value; }
-    public String getValue() { return value; }
-}
-
-// NEVER use raw primitives for domain concepts:
-// BAD: void createOrder(String userId, String email)
-// GOOD: void createOrder(UserId userId, Email email)
-```
-
-See: [references/clean-code.md](references/clean-code.md)
+**Value Objects are mandatory for domain concepts** (IDs, emails, money, etc.) — never pass raw primitives like `String userId` where a `UserId` type belongs. See [references/clean-code.md](references/clean-code.md) for the full pattern and examples.
 
 ### 4. Design with Responsibility in Mind
 
@@ -213,26 +173,7 @@ See: [references/design-patterns.md](references/design-patterns.md)
 2. **Integration Tests** - Multiple components together
 3. **E2E/Acceptance Tests** - Full system, user perspective
 
-**Arrange-Act-Assert Pattern:**
-```java
-@Test
-void whenAdding2And3_shouldReturn5() {
-    // Arrange - Set up test state
-    Calculator calculator = new Calculator();
-
-    // Act - Execute the behavior
-    int result = calculator.add(2, 3);
-
-    // Assert - Verify the outcome
-    assertEquals(5, result);
-}
-```
-
-**Test Naming:** Use concrete examples, not abstract statements
-```java
-// BAD: @Test void canAddNumbers()
-// GOOD: @Test void whenAdding2And3_shouldReturn5()
-```
+Structure every test **Arrange-Act-Assert**, and name it after a concrete example (`whenAdding2And3_shouldReturn5`), not an abstract statement (`canAddNumbers`).
 
 See: [references/testing.md](references/testing.md)
 
@@ -289,6 +230,8 @@ After the code works:
 - `System.exit` outside of `Main`
 - Configuration constants buried inside domain or infrastructure classes
 - Mixed abstraction levels within a single method
+
+These are defaults for maintained production code, not absolutes — don't fragment a genuinely simple method just to hit a line count, and don't apply them to throwaway scripts (see "Use lighter judgment for" above).
 
 ## Remember
 

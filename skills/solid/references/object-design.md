@@ -39,24 +39,6 @@ For every class, ask:
 
 If you can't answer clearly, the class needs refactoring.
 
-### Lessons from practice
-
-#### Put the detail where the concern lives
-When a method needs low-level validation or mechanics, put that detail in the class that **owns the concern** — 
-not in the caller, and not in a private helper that stays in the caller. The caller should delegate, not micromanage.
-
-```java
-// BAD: Caller owns validation detail it shouldn't know
-Path path = Paths.get(DATA_DIR);
-if (!Files.isDirectory(path)) {  // The caller shouldn't know how to validate paths
-    throw new IllegalArgumentException("Not a directory");
-}
-FileDirectory dir = new FileDirectory(path);
-
-// GOOD: Detail lives in the class that owns it
-FileDirectory dir = new FileDirectory(Paths.get(DATA_DIR));  // Validation happens inside
-```
-
 ---
 
 ## Tell, Don't Ask
@@ -366,7 +348,25 @@ order.addItem(product, 2); // Validation happens
 
 ---
 
-## API Design Lessons
+## Lessons from Practice
+
+These lessons emerged from real refactoring and cover API design and where responsibilities belong.
+
+### Put the detail where the concern lives
+When a method needs low-level validation or mechanics, put that detail in the class that **owns the concern** —
+not in the caller, and not in a private helper that stays in the caller. The caller should delegate, not micromanage.
+
+```java
+// BAD: Caller owns validation detail it shouldn't know
+Path path = Paths.get(DATA_DIR);
+if (!Files.isDirectory(path)) {  // The caller shouldn't know how to validate paths
+    throw new IllegalArgumentException("Not a directory");
+}
+FileDirectory dir = new FileDirectory(path);
+
+// GOOD: Detail lives in the class that owns it
+FileDirectory dir = new FileDirectory(Paths.get(DATA_DIR));  // Validation happens inside
+```
 
 ### Accept modern types, let caller handle conversion
 Design public APIs with modern types (`Path`, `Instant`) to clearly signal what you expect. Let the caller handle 
