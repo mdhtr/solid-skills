@@ -285,6 +285,10 @@ After the code works:
 - Adding features "just in case"
 - Depending on concrete implementations
 - God classes that know everything
+- Interface with only one implementation in a single module project
+- `System.exit` outside of `Main`
+- Configuration constants buried inside domain or infrastructure classes
+- Mixed abstraction levels within a single method
 
 ## Remember
 

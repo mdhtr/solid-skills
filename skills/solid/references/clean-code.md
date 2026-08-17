@@ -107,6 +107,20 @@ var user = user;
 class User { }
 ```
 
+### 8. Name methods by outcome, not procedure
+A method name should say *what* it returns or achieves, not *how* it works.
+
+```java
+// BAD: Describes the procedure
+List<EdfFileInfo> parse() { ... }
+
+// GOOD: Describes the outcome
+List<EdfFileInfo> getFileInfos() { ... }
+```
+
+### 9. Methods should do one thing
+If a name uses "and", it advertises two things — even if the implementation is short.
+
 ---
 
 ## Object Calisthenics (9 Rules)
