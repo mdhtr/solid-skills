@@ -174,6 +174,9 @@ class PremiumUserCheckoutTest {
 }
 ```
 
+#### Preferred vocabulary
+- Use "returns" instead of "yields"
+
 ---
 
 ## Test Doubles
@@ -237,6 +240,9 @@ void setUp() {
 // After test
 verify(mockRepo).save(expectedUser);
 ```
+
+#### Variable naming
+- Use "mock" instead of "stub"
 
 ### Fake
 
