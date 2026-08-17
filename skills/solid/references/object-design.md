@@ -39,6 +39,24 @@ For every class, ask:
 
 If you can't answer clearly, the class needs refactoring.
 
+### Lessons from practice
+
+#### Put the detail where the concern lives
+When a method needs low-level validation or mechanics, put that detail in the class that **owns the concern** — 
+not in the caller, and not in a private helper that stays in the caller. The caller should delegate, not micromanage.
+
+```java
+// BAD: Caller owns validation detail it shouldn't know
+Path path = Paths.get(DATA_DIR);
+if (!Files.isDirectory(path)) {  // The caller shouldn't know how to validate paths
+    throw new IllegalArgumentException("Not a directory");
+}
+FileDirectory dir = new FileDirectory(path);
+
+// GOOD: Detail lives in the class that owns it
+FileDirectory dir = new FileDirectory(Paths.get(DATA_DIR));  // Validation happens inside
+```
+
 ---
 
 ## Tell, Don't Ask
@@ -398,6 +416,11 @@ public FileDirectory(Path path) {
 ```
 
 ### Fail-fast in constructors for initialization-time failures
-Constructor validation is appropriate when an invalid argument prevents the program from running. A missing directory 
-is a fatal config error at startup, not optional behavior. Use `try-catch` in `main()` for these, not `Optional` return 
+Constructor validation is appropriate when an invalid argument prevents the program from running. A missing directory
+is a fatal config error at startup, not optional behavior. Use `try-catch` in `main()` for these, not `Optional` return
 types that suggest the caller can proceed without the object.
+
+### Constructor arguments vs. internal constants
+If a value varies per use (a path, a label, a threshold), it belongs in the constructor — it is configuration the caller
+owns. If it is truly invariant and internal to the class, make it a private constant. The wrong split forces callers to
+pass things that are not their concern, or hides things that should be visible.

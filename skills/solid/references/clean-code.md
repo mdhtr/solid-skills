@@ -129,6 +129,13 @@ Exercises to improve OO design. Follow strictly during practice, relax slightly 
 
 ### 1. One Level of Indentation per Method
 
+**Detect mixed abstraction:**
+- High-level intent (`processOrder`) mixed with low-level mechanics (`file.getName().endsWith(".txt")`)
+- Object wiring (`new Service()`) mixed with validation (`if (!dir.isDirectory())`)
+- Domain language (`calculateTotal`) mixed with implementation details (`stream().filter().map().collect()`)
+
+**Fix:** Extract methods so every statement operates at the same conceptual level.
+
 ```java
 // BAD: Multiple levels
 void process(List<Order> orders) {

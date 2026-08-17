@@ -311,6 +311,21 @@ PostgreSQL for:
 
 ---
 
+## Lessons from Practice
+
+These lessons emerged from real refactoring and concern the application entry point and error handling boundaries.
+
+### 1. Configuration belongs at the entry point, visibly
+Constants like directory paths or environment settings belong in `Main` (or a dedicated config class), not buried inside
+domain objects. Hiding configuration inside a class makes the program harder to understand at a glance and gives that
+class a second reason to change. The entry point should be the single place where wiring configuration is visible.
+
+### 2. `System.exit` belongs only in `Main`
+Domain and infrastructure classes signal failure by *throwing*. Deciding what to do about it — exit, retry, log — is the
+application shell's responsibility. `System.exit` anywhere except `Main` is a code smell and makes classes untestable.
+
+---
+
 ## Red Flags in Architecture
 
 - **Circular dependencies** between modules

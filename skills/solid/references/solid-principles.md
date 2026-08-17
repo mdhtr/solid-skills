@@ -282,24 +282,6 @@ A single-implementation interface adds indirection without value. Wait until the
 Ask: *is another module going to use this interface?*
 A single-module interface adds indirection without value. Wait until the second module exists — or is genuinely imminent.
 
-### 2. Configuration belongs at the entry point, visibly
-Constants like directory paths or environment settings belong in `Main` (or a dedicated config class), not buried inside 
-domain objects. Hiding configuration inside a class makes the program harder to understand at a glance and gives that 
-class a second reason to change.
-
-### 3. `System.exit` belongs only in `Main`
-Domain and infrastructure classes signal failure by *throwing*. Deciding what to do about it — exit, retry, log — is the 
-application shell's responsibility. `System.exit` anywhere except `Main` is a code smell and makes classes untestable.
-
-### 4. Constructor arguments vs. internal constants
-If a value varies per use (a path, a label, a threshold), it belongs in the constructor — it is configuration the caller 
-owns. If it is truly invariant and internal to the class, make it a private constant. The wrong split forces callers to 
-pass things that are not their concern, or hides things that should be visible.
-
-### 5. Abstraction level consistency within a method
-Every statement in a method should operate at the same level of abstraction. If `main()` mixes high-level wiring 
-(`new EdfParser()`) with low-level detail (`if (!dir.isDirectory())`), extract the detail into the class that owns that 
-concern — not into a private helper that stays in `main`.
 
 ### 6. Don't sort where you don't own the ordering decision (SRP)
 A class that provides access to a collection should not impose ordering unless that ordering is its core responsibility. 
