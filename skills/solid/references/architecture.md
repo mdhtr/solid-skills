@@ -320,9 +320,13 @@ Constants like directory paths or environment settings belong in `Main` (or a de
 domain objects. Hiding configuration inside a class makes the program harder to understand at a glance and gives that
 class a second reason to change. The entry point should be the single place where wiring configuration is visible.
 
-### 2. `System.exit` belongs only in `Main`
+### 2. `System.exit` belongs only at program entry point (`Main`, `Launcher`, ...)
 Domain and infrastructure classes signal failure by *throwing*. Deciding what to do about it — exit, retry, log — is the
 application shell's responsibility. `System.exit` anywhere except `Main` is a code smell and makes classes untestable.
+
+### 3. Domain class instantiation belongs only at program entry point (`Main`, `Launcher`, ...)
+Use dependency injection concept. Wire class hierarchy together at entry point. All domain classes should be injectable 
+to the place of usage. If wiring by hand becomes inconvenient because of project size, use a framework for dependency injection.
 
 ---
 
