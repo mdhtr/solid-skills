@@ -79,16 +79,42 @@ See: [references/solid-principles.md](references/solid-principles.md)
 - No more than two instance variables per class
 
 **Value Objects are MANDATORY for:**
-```typescript
+```java
 // ALWAYS create value objects for:
-class UserId { constructor(private readonly value: string) {} }
-class Email { constructor(private readonly value: string) { /* validate */ } }
-class Money { constructor(private readonly amount: number, private readonly currency: string) {} }
-class OrderId { constructor(private readonly value: string) {} }
+public final class UserId {
+    private final String value;
+    public UserId(String value) { this.value = value; }
+    public String getValue() { return value; }
+}
+
+public final class Email {
+    private final String value;
+    public Email(String value) {
+        if (!isValid(value)) throw new IllegalArgumentException("Invalid email");
+        this.value = value;
+    }
+    private boolean isValid(String email) { return email.contains("@"); }
+    public String getValue() { return value; }
+}
+
+public final class Money {
+    private final BigDecimal amount;
+    private final Currency currency;
+    public Money(BigDecimal amount, Currency currency) {
+        this.amount = amount;
+        this.currency = currency;
+    }
+}
+
+public final class OrderId {
+    private final String value;
+    public OrderId(String value) { this.value = value; }
+    public String getValue() { return value; }
+}
 
 // NEVER use raw primitives for domain concepts:
-// BAD: function createOrder(userId: string, email: string)
-// GOOD: function createOrder(userId: UserId, email: Email)
+// BAD: void createOrder(String userId, String email)
+// GOOD: void createOrder(UserId userId, Email email)
 ```
 
 See: [references/clean-code.md](references/clean-code.md)
@@ -188,21 +214,24 @@ See: [references/design-patterns.md](references/design-patterns.md)
 3. **E2E/Acceptance Tests** - Full system, user perspective
 
 **Arrange-Act-Assert Pattern:**
-```typescript
-// Arrange - Set up test state
-const calculator = new Calculator();
+```java
+@Test
+void whenAdding2And3_shouldReturn5() {
+    // Arrange - Set up test state
+    Calculator calculator = new Calculator();
 
-// Act - Execute the behavior
-const result = calculator.add(2, 3);
+    // Act - Execute the behavior
+    int result = calculator.add(2, 3);
 
-// Assert - Verify the outcome
-expect(result).toBe(5);
+    // Assert - Verify the outcome
+    assertEquals(5, result);
+}
 ```
 
 **Test Naming:** Use concrete examples, not abstract statements
-```typescript
-// BAD: 'can add numbers'
-// GOOD: 'when adding 2 + 3, returns 5'
+```java
+// BAD: @Test void canAddNumbers()
+// GOOD: @Test void whenAdding2And3_shouldReturn5()
 ```
 
 See: [references/testing.md](references/testing.md)

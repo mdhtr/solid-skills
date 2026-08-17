@@ -22,88 +22,88 @@ Design for all three, but remember: **developers read code 10x more than they wr
 ### 1. Consistency & Uniqueness (HIGHEST PRIORITY)
 Same concept = same name everywhere. One name per concept.
 
-```typescript
+```java
 // BAD: Inconsistent names for same concept
-getUserById(id)
-fetchCustomerById(id)
-retrieveClientById(id)
+getUserById(id);
+fetchCustomerById(id);
+retrieveClientById(id);
 
 // GOOD: Consistent
-getUser(id)
-getOrder(id)
-getProduct(id)
+getUser(id);
+getOrder(id);
+getProduct(id);
 ```
 
 ### 2. Understandability
 Use domain language, not technical jargon.
 
-```typescript
+```java
 // BAD: Technical
-const arr = users.filter(u => u.isActive);
+var arr = users.stream().filter(u -> u.isActive()).toList();
 
 // GOOD: Domain language
-const activeCustomers = users.filter(user => user.isActive);
+var activeCustomers = users.stream().filter(user -> user.isActive()).toList();
 ```
 
 ### 3. Specificity
 Avoid vague names: `data`, `info`, `manager`, `handler`, `processor`, `utils`
 
-```typescript
+```java
 // BAD: Vague
 class DataManager { }
-function processInfo(data) { }
+void processInfo(Object data) { }
 
 // GOOD: Specific
 class OrderRepository { }
-function validatePayment(payment) { }
+void validatePayment(Payment payment) { }
 ```
 
 ### 4. Brevity (but not at cost of clarity)
 Short names are good only if meaning is preserved.
 
-```typescript
+```java
 // BAD: Too cryptic
-const usrLst = getUsrs();
+var usrLst = getUsrs();
 
 // BAD: Unnecessarily long
-const listOfAllActiveUsersInTheSystem = getActiveUsers();
+var listOfAllActiveUsersInTheSystem = getActiveUsers();
 
 // GOOD: Brief but clear
-const activeUsers = getActiveUsers();
+var activeUsers = getActiveUsers();
 ```
 
 ### 5. Searchability
 Names should be unique enough to grep/search.
 
-```typescript
+```java
 // BAD: Common word, hard to search
-const data = fetch();
+var data = fetch();
 
 // GOOD: Unique, searchable
-const orderSummary = fetchOrderSummary();
+var orderSummary = fetchOrderSummary();
 ```
 
 ### 6. Pronounceability
 You should be able to say it in conversation.
 
-```typescript
+```java
 // BAD
-const genymdhms = generateYearMonthDayHourMinuteSecond();
+var genymdhms = generateYearMonthDayHourMinuteSecond();
 
 // GOOD
-const timestamp = generateTimestamp();
+var timestamp = generateTimestamp();
 ```
 
 ### 7. Austerity
 Avoid unnecessary filler words.
 
-```typescript
+```java
 // BAD: Redundant
-const userData = user; // 'Data' adds nothing
-class UserClass { }    // 'Class' adds nothing
+var userData = user; // 'Data' adds nothing
+class UserClass { } // 'Class' adds nothing
 
 // GOOD
-const user = user;
+var user = user;
 class User { }
 ```
 
@@ -115,27 +115,31 @@ Exercises to improve OO design. Follow strictly during practice, relax slightly 
 
 ### 1. One Level of Indentation per Method
 
-```typescript
+```java
 // BAD: Multiple levels
-function process(orders: Order[]) {
-  for (const order of orders) {
-    if (order.isValid()) {
-      for (const item of order.items) {
-        if (item.inStock) {
-          // process...
+void process(List<Order> orders) {
+    for (Order order : orders) {
+        if (order.isValid()) {
+            for (OrderItem item : order.getItems()) {
+                if (item.isInStock()) {
+                    // process...
+                }
+            }
         }
-      }
     }
-  }
 }
 
 // GOOD: Extract methods
-function process(orders: Order[]) {
-  orders.filter(o => o.isValid()).forEach(processOrder);
+void process(List<Order> orders) {
+    orders.stream()
+          .filter(Order::isValid)
+          .forEach(this::processOrder);
 }
 
-function processOrder(order: Order) {
-  order.items.filter(i => i.inStock).forEach(processItem);
+void processOrder(Order order) {
+    order.getItems().stream()
+         .filter(OrderItem::isInStock)
+         .forEach(this::processItem);
 }
 ```
 
@@ -143,20 +147,20 @@ function processOrder(order: Order) {
 
 Use early returns, guard clauses, or polymorphism.
 
-```typescript
+```java
 // BAD: else
-function getDiscount(user: User): number {
-  if (user.isPremium) {
-    return 20;
-  } else {
-    return 0;
-  }
+int getDiscount(User user) {
+    if (user.isPremium()) {
+        return 20;
+    } else {
+        return 0;
+    }
 }
 
 // GOOD: Early return
-function getDiscount(user: User): number {
-  if (user.isPremium) return 20;
-  return 0;
+int getDiscount(User user) {
+    if (user.isPremium()) return 20;
+    return 0;
 }
 ```
 
@@ -164,53 +168,61 @@ function getDiscount(user: User): number {
 
 Primitives should be wrapped in domain objects when they have meaning.
 
-```typescript
+```java
 // BAD: Primitive obsession
-function createUser(email: string, age: number) { }
+void createUser(String email, int age) { }
 
 // GOOD: Value objects
-class Email {
-  constructor(private value: string) {
-    if (!this.isValid(value)) throw new InvalidEmail();
-  }
-  private isValid(email: string): boolean { ... }
+public final class Email {
+    private final String value;
+    public Email(String value) {
+        if (!isValid(value)) throw new IllegalArgumentException("Invalid email");
+        this.value = value;
+    }
+    private boolean isValid(String email) { return email.contains("@"); }
+    public String getValue() { return value; }
 }
 
-class Age {
-  constructor(private value: number) {
-    if (value < 0 || value > 150) throw new InvalidAge();
-  }
+public final class Age {
+    private final int value;
+    public Age(int value) {
+        if (value < 0 || value > 150) throw new IllegalArgumentException("Invalid age");
+        this.value = value;
+    }
+    public int getValue() { return value; }
 }
 
-function createUser(email: Email, age: Age) { }
+void createUser(Email email, Age age) { }
 ```
 
 ### 4. First-Class Collections
 
 Any class with a collection should have no other instance variables.
 
-```typescript
+```java
 // BAD: Collection mixed with other state
 class Order {
-  items: OrderItem[] = [];
-  customerId: string;
-  total: number;
+    List<OrderItem> items = new ArrayList<>();
+    String customerId;
+    BigDecimal total;
 }
 
 // GOOD: Collection is its own class
 class OrderItems {
-  constructor(private items: OrderItem[] = []) {}
-
-  add(item: OrderItem): void { ... }
-  total(): Money { ... }
-  isEmpty(): boolean { ... }
+    private final List<OrderItem> items;
+    OrderItems(List<OrderItem> items) { this.items = new ArrayList<>(items); }
+    void add(OrderItem item) { ... }
+    Money total() { ... }
+    boolean isEmpty() { return items.isEmpty(); }
 }
 
 class Order {
-  constructor(
-    private items: OrderItems,
-    private customerId: CustomerId
-  ) {}
+    private final OrderItems items;
+    private final CustomerId customerId;
+    Order(OrderItems items, CustomerId customerId) {
+        this.items = items;
+        this.customerId = customerId;
+    }
 }
 ```
 
@@ -218,26 +230,26 @@ class Order {
 
 Don't chain through object graphs.
 
-```typescript
+```java
 // BAD: Train wreck
-const city = order.customer.address.city;
+var city = order.getCustomer().getAddress().getCity();
 
 // GOOD: Tell, don't ask
-const city = order.getShippingCity();
+var city = order.getShippingCity();
 ```
 
 ### 6. Don't Abbreviate
 
 If a name is too long to type, the class is doing too much.
 
-```typescript
+```java
 // BAD
-const custRepo = new CustRepo();
-const ord = new Ord();
+var custRepo = new CustRepo();
+var ord = new Ord();
 
 // GOOD
-const customerRepository = new CustomerRepository();
-const order = new Order();
+var customerRepository = new CustomerRepository();
+var order = new Order();
 ```
 
 ### 7. Keep All Entities Small
@@ -252,29 +264,33 @@ If larger, it's probably doing too much. Split it.
 
 Forces small, focused classes.
 
-```typescript
+```java
 // BAD: Too many variables
 class Order {
-  id: string;
-  customerId: string;
-  items: Item[];
-  total: number;
-  status: string;
+    String id;
+    String customerId;
+    List<Item> items;
+    BigDecimal total;
+    String status;
 }
 
 // GOOD: Composed of smaller objects
 class Order {
-  constructor(
-    private id: OrderId,
-    private details: OrderDetails
-  ) {}
+    private final OrderId id;
+    private final OrderDetails details;
+    Order(OrderId id, OrderDetails details) {
+        this.id = id;
+        this.details = details;
+    }
 }
 
 class OrderDetails {
-  constructor(
-    private customer: Customer,
-    private lineItems: LineItems
-  ) {}
+    private final Customer customer;
+    private final LineItems lineItems;
+    OrderDetails(Customer customer, LineItems lineItems) {
+        this.customer = customer;
+        this.lineItems = lineItems;
+    }
 }
 ```
 
@@ -282,31 +298,31 @@ class OrderDetails {
 
 Objects should have behavior, not just data. Tell objects what to do.
 
-```typescript
+```java
 // BAD: Data bag with getters
 class Account {
-  getBalance(): number { return this.balance; }
-  setBalance(value: number) { this.balance = value; }
+    BigDecimal getBalance() { return balance; }
+    void setBalance(BigDecimal value) { this.balance = value; }
 }
 
 // Caller does the work
-if (account.getBalance() >= amount) {
-  account.setBalance(account.getBalance() - amount);
+if (account.getBalance().compareTo(amount) >= 0) {
+    account.setBalance(account.getBalance().subtract(amount));
 }
 
 // GOOD: Behavior-rich object
 class Account {
-  withdraw(amount: Money): WithdrawResult {
-    if (!this.canWithdraw(amount)) {
-      return WithdrawResult.insufficientFunds();
+    WithdrawResult withdraw(Money amount) {
+        if (!canWithdraw(amount)) {
+            return WithdrawResult.insufficientFunds();
+        }
+        this.balance = this.balance.subtract(amount);
+        return WithdrawResult.success();
     }
-    this.balance = this.balance.subtract(amount);
-    return WithdrawResult.success();
-  }
 }
 
 // Caller tells, object decides
-const result = account.withdraw(amount);
+WithdrawResult result = account.withdraw(amount);
 ```
 
 ---
@@ -319,7 +335,7 @@ const result = account.withdraw(amount);
 
 Code explains what and how. Comments explain business reasons, non-obvious decisions, or warnings.
 
-```typescript
+```java
 // BAD: Explains what (redundant)
 // Add 1 to counter
 counter++;
@@ -333,10 +349,10 @@ counter++;
 
 Instead of commenting, rename to make intent clear.
 
-```typescript
+```java
 // BAD: Comment needed
 // Check if user can access premium features
-if (user.subscriptionLevel >= 2 && !user.isBanned) { }
+if (user.getSubscriptionLevel() >= 2 && !user.isBanned()) { }
 
 // GOOD: Self-documenting
 if (user.canAccessPremiumFeatures()) { }
@@ -359,18 +375,18 @@ if (user.canAccessPremiumFeatures()) { }
 ### Storytelling
 Code should read top-to-bottom like a story. High-level at top, details below.
 
-```typescript
+```java
 class OrderProcessor {
-  // Public API first
-  process(order: Order): ProcessResult {
-    this.validate(order);
-    this.calculateTotals(order);
-    return this.save(order);
-  }
+    // Public API first
+    ProcessResult process(Order order) {
+        validate(order);
+        calculateTotals(order);
+        return save(order);
+    }
 
-  // Supporting methods below, in order of appearance
-  private validate(order: Order): void { ... }
-  private calculateTotals(order: Order): void { ... }
-  private save(order: Order): ProcessResult { ... }
+    // Supporting methods below, in order of appearance
+    private void validate(Order order) { ... }
+    private void calculateTotals(Order order) { ... }
+    private ProcessResult save(Order order) { ... }
 }
 ```

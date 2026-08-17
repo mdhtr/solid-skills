@@ -19,25 +19,25 @@ Organize by **feature**, not by technical layer.
 BAD: Layer-first
 src/
   controllers/
-    UserController.ts
-    OrderController.ts
+    UserController.java
+    OrderController.java
   services/
-    UserService.ts
-    OrderService.ts
+    UserService.java
+    OrderService.java
   repositories/
-    UserRepository.ts
-    OrderRepository.ts
+    UserRepository.java
+    OrderRepository.java
 
 GOOD: Feature-first
 src/
   users/
-    UserController.ts
-    UserService.ts
-    UserRepository.ts
+    UserController.java
+    UserService.java
+    UserRepository.java
   orders/
-    OrderController.ts
-    OrderService.ts
-    OrderRepository.ts
+    OrderController.java
+    OrderService.java
+    OrderRepository.java
 ```
 
 **Why:** Changes to "users" feature stay in `users/`. High cohesion within features.
@@ -72,23 +72,29 @@ Infrastructure → Application → Domain
 - Domain has zero dependencies on infrastructure
 - Use interfaces to invert dependencies
 
-```typescript
+```java
 // Domain defines the interface (inner)
 interface UserRepository {
-  save(user: User): Promise<void>;
-  findById(id: UserId): Promise<User | null>;
+    void save(User user);
+    User findById(UserId id);
 }
 
 // Infrastructure implements it (outer)
 class PostgresUserRepository implements UserRepository {
-  save(user: User): Promise<void> {
-    // SQL here
-  }
+    public void save(User user) {
+        // SQL here
+    }
+    public User findById(UserId id) {
+        // SQL here
+    }
 }
 
 // Domain service uses the interface
 class UserService {
-  constructor(private repo: UserRepository) {} // Depends on abstraction
+    private final UserRepository repo;
+    UserService(UserRepository repo) { // Depends on abstraction
+        this.repo = repo;
+    }
 }
 ```
 
@@ -96,11 +102,11 @@ class UserService {
 
 Interfaces define boundaries between components.
 
-```typescript
+```java
 // The contract
 interface PaymentGateway {
-  charge(amount: Money, card: CardDetails): Promise<ChargeResult>;
-  refund(chargeId: string): Promise<RefundResult>;
+    ChargeResult charge(Money amount, CardDetails card);
+    RefundResult refund(String chargeId);
 }
 
 // Multiple implementations possible
@@ -119,15 +125,15 @@ Concerns that span multiple features: logging, auth, validation, error handling.
 - Aspect-oriented approaches
 - Base classes (use sparingly)
 
-```typescript
+```java
 // Middleware approach
 class LoggingMiddleware {
-  handle(request: Request, next: Handler): Response {
-    console.log(`Request: ${request.path}`);
-    const response = next(request);
-    console.log(`Response: ${response.status}`);
-    return response;
-  }
+    Response handle(Request request, Handler next) {
+        System.out.println("Request: " + request.getPath());
+        Response response = next.handle(request);
+        System.out.println("Response: " + response.getStatus());
+        return response;
+    }
 }
 ```
 
@@ -191,24 +197,22 @@ src/
   features/
     auth/
       components/
-        LoginForm.tsx
-        SignupForm.tsx
-      hooks/
-        useAuth.ts
+        LoginForm.java
+        SignupForm.java
       services/
-        authService.ts
-      types/
-        auth.types.ts
-      index.ts  # Public API
+        AuthService.java
+      dto/
+        AuthRequest.java
+        AuthResponse.java
+      index.java  # Public API
     checkout/
       components/
-      hooks/
       services/
-      types/
-      index.ts
+      dto/
+      index.java
   shared/
     components/  # Truly shared UI
-    hooks/       # Truly shared hooks
+    services/    # Truly shared services
     utils/       # Truly shared utilities
 ```
 
@@ -221,16 +225,16 @@ src/
   modules/
     users/
       domain/
-        User.ts
-        UserRepository.ts  # Interface
+        User.java
+        UserRepository.java  # Interface
       application/
-        CreateUser.ts      # Use case
-        GetUser.ts         # Use case
+        CreateUser.java      # Use case
+        GetUser.java         # Use case
       infrastructure/
-        PostgresUserRepo.ts
+        PostgresUserRepo.java
       presentation/
-        UserController.ts
-        UserDTO.ts
+        UserController.java
+        UserDTO.java
     orders/
       domain/
       application/

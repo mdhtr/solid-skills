@@ -14,28 +14,28 @@ God objects that do everything - hard to test, hard to change, hard to understan
 ### How to Apply
 Each class handles ONE responsibility. If you find yourself saying "and" when describing what a class does, split it.
 
-```typescript
+```java
 // BAD: Multiple responsibilities
 class Order {
-  calculateTotal(): number { ... }
-  saveToDatabase(): void { ... }    // Persistence
-  generateInvoice(): string { ... } // Presentation
+    BigDecimal calculateTotal() { ... }
+    void saveToDatabase() { ... }    // Persistence
+    String generateInvoice() { ... } // Presentation
 }
 
 // GOOD: Single responsibility each
 class Order {
-  private items: OrderItem[] = [];
+    private List<OrderItem> items = new ArrayList<>();
 
-  addItem(item: OrderItem): void { ... }
-  calculateTotal(): number { ... }
+    void addItem(OrderItem item) { ... }
+    BigDecimal calculateTotal() { ... }
 }
 
-class OrderRepository {
-  save(order: Order): Promise<void> { ... }
+interface OrderRepository {
+    void save(Order order);
 }
 
 class InvoiceGenerator {
-  generate(order: Order): Invoice { ... }
+    Invoice generate(Order order) { ... }
 }
 ```
 
@@ -56,38 +56,39 @@ Having to modify existing, tested code every time requirements change. Risk of b
 ### How to Apply
 Design abstractions that allow new behavior through new classes, not edits to existing ones.
 
-```typescript
+```java
 // BAD: Must modify to add new shipping
 class ShippingCalculator {
-  calculate(type: string, value: number): number {
-    if (type === 'standard') return value < 50 ? 5 : 0;
-    if (type === 'express') return 15;
-    // Must add more ifs for new types!
-  }
+    BigDecimal calculate(String type, BigDecimal value) {
+        if ("standard".equals(type)) return value.compareTo(BigDecimal.valueOf(50)) < 0 ? BigDecimal.valueOf(5) : BigDecimal.ZERO;
+        if ("express".equals(type)) return BigDecimal.valueOf(15);
+        // Must add more ifs for new types!
+        throw new IllegalArgumentException("Unknown type");
+    }
 }
 
 // GOOD: Open for extension
 interface ShippingMethod {
-  calculateCost(orderValue: number): number;
+    BigDecimal calculateCost(BigDecimal orderValue);
 }
 
 class StandardShipping implements ShippingMethod {
-  calculateCost(orderValue: number): number {
-    return orderValue < 50 ? 5 : 0;
-  }
+    public BigDecimal calculateCost(BigDecimal orderValue) {
+        return orderValue.compareTo(BigDecimal.valueOf(50)) < 0 ? BigDecimal.valueOf(5) : BigDecimal.ZERO;
+    }
 }
 
 class ExpressShipping implements ShippingMethod {
-  calculateCost(orderValue: number): number {
-    return 15;
-  }
+    public BigDecimal calculateCost(BigDecimal orderValue) {
+        return BigDecimal.valueOf(15);
+    }
 }
 
 // Add new shipping by creating new class, not modifying existing
 class SameDayShipping implements ShippingMethod {
-  calculateCost(orderValue: number): number {
-    return 25;
-  }
+    public BigDecimal calculateCost(BigDecimal orderValue) {
+        return BigDecimal.valueOf(25);
+    }
 }
 ```
 
@@ -106,29 +107,32 @@ Subclasses that break expectations, requiring type-checking and special cases.
 ### How to Apply
 Subclasses must honor the contract of the parent. If the parent returns positive numbers, subclasses cannot return negatives.
 
-```typescript
+```java
 // BAD: Violates parent's contract
-class DiscountPolicy {
-  getDiscount(value: number): number {
-    return 0; // Non-negative expected
-  }
+abstract class DiscountPolicy {
+    abstract BigDecimal getDiscount(BigDecimal value);
 }
 
 class WeirdDiscount extends DiscountPolicy {
-  getDiscount(value: number): number {
-    return -5; // Increases cost! Breaks expectations
-  }
+    BigDecimal getDiscount(BigDecimal value) {
+        return new BigDecimal("-5"); // Increases cost! Breaks expectations
+    }
 }
 
 // GOOD: Enforces contract
-class DiscountPolicy {
-  constructor(private discount: number) {
-    if (discount < 0) throw new Error("Discount must be non-negative");
-  }
+abstract class DiscountPolicy {
+    protected final BigDecimal discount;
 
-  getDiscount(): number {
-    return this.discount;
-  }
+    DiscountPolicy(BigDecimal discount) {
+        if (discount.compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalArgumentException("Discount must be non-negative");
+        }
+        this.discount = discount;
+    }
+
+    BigDecimal getDiscount() {
+        return discount;
+    }
 }
 ```
 
@@ -147,35 +151,35 @@ Fat interfaces that force partial implementations, empty methods, or throws.
 ### How to Apply
 Split large interfaces into smaller, cohesive ones. Clients depend only on what they need.
 
-```typescript
+```java
 // BAD: Fat interface
 interface WarehouseDevice {
-  printLabel(orderId: string): void;
-  scanBarcode(): string;
-  packageItem(orderId: string): void;
+    void printLabel(String orderId);
+    String scanBarcode();
+    void packageItem(String orderId);
 }
 
 class BasicPrinter implements WarehouseDevice {
-  printLabel(orderId: string): void { /* works */ }
-  scanBarcode(): string { throw new Error("Not supported"); } // Forced!
-  packageItem(orderId: string): void { throw new Error("Not supported"); }
+    public void printLabel(String orderId) { /* works */ }
+    public String scanBarcode() { throw new UnsupportedOperationException("Not supported"); } // Forced!
+    public void packageItem(String orderId) { throw new UnsupportedOperationException("Not supported"); }
 }
 
 // GOOD: Segregated interfaces
 interface LabelPrinter {
-  printLabel(orderId: string): void;
+    void printLabel(String orderId);
 }
 
 interface BarcodeScanner {
-  scanBarcode(): string;
+    String scanBarcode();
 }
 
 interface ItemPackager {
-  packageItem(orderId: string): void;
+    void packageItem(String orderId);
 }
 
 class BasicPrinter implements LabelPrinter {
-  printLabel(orderId: string): void { /* only what it does */ }
+    public void printLabel(String orderId) { /* only what it does */ }
 }
 ```
 
@@ -194,27 +198,31 @@ Tight coupling to specific implementations (databases, APIs, frameworks). Hard t
 ### How to Apply
 Depend on interfaces, inject implementations.
 
-```typescript
+```java
 // BAD: Direct dependency on concrete class
 class OrderService {
-  private emailService = new SendGridEmailService(); // Locked in!
+    private final SendGridEmailService emailService = new SendGridEmailService(); // Locked in!
 
-  confirmOrder(email: string): void {
-    this.emailService.send(email, "Order confirmed");
-  }
+    void confirmOrder(String email) {
+        emailService.send(email, "Order confirmed");
+    }
 }
 
 // GOOD: Depend on abstraction
 interface EmailService {
-  send(to: string, message: string): void;
+    void send(String to, String message);
 }
 
 class OrderService {
-  constructor(private emailService: EmailService) {}
+    private final EmailService emailService;
 
-  confirmOrder(email: string): void {
-    this.emailService.send(email, "Order confirmed");
-  }
+    OrderService(EmailService emailService) {
+        this.emailService = emailService;
+    }
+
+    void confirmOrder(String email) {
+        emailService.send(email, "Order confirmed");
+    }
 }
 
 // Now can inject any implementation

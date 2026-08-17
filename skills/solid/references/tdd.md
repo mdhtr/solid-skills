@@ -12,28 +12,30 @@ Write a failing test that describes the behavior you want. The test should:
 - Describe WHAT, not HOW
 - Be a concrete example, not an abstract statement
 
-```typescript
+```java
 // BAD: Abstract
-it('can add numbers', () => { ... });
+@Test
+void canAddNumbers() { ... }
 
 // GOOD: Concrete example
-it('when adding 2 + 3, returns 5', () => { ... });
+@Test
+void whenAdding2And3_returns5() { ... }
 ```
 
 ### GREEN Phase
 Write the **simplest possible code** to make the test pass. Two strategies:
 
 1. **Fake It** - Return a hardcoded value
-   ```typescript
-   add(a: number, b: number): number {
-     return 5; // Simplest thing!
+   ```java
+   public int add(int a, int b) {
+       return 5; // Simplest thing!
    }
    ```
 
 2. **Obvious Implementation** - If you know the solution
-   ```typescript
-   add(a: number, b: number): number {
-     return a + b;
+   ```java
+   public int add(int a, int b) {
+       return a + b;
    }
    ```
 
@@ -58,7 +60,7 @@ This is where **design happens**. Look for:
 
 Why? Wrong abstractions are worse than duplication. Wait for the pattern to emerge.
 
-```typescript
+```java
 // Duplication #1 - Leave it
 // Duplication #2 - Note it, leave it
 // Duplication #3 - NOW extract it
@@ -90,19 +92,20 @@ Higher priority = simpler. Avoid jumping to complex transformations too early.
 
 Structure every test:
 
-```typescript
-it('calculates total with discount', () => {
-  // ARRANGE - Set up the world
-  const order = new Order();
-  order.addItem({ price: 100 });
-  const discount = new PercentDiscount(10);
+```java
+@Test
+void calculatesTotalWithDiscount() {
+    // ARRANGE - Set up the world
+    Order order = new Order();
+    order.addItem(new OrderItem(Money.dollars(100)));
+    PercentDiscount discount = new PercentDiscount(10);
 
-  // ACT - Execute the behavior
-  const total = order.calculateTotal(discount);
+    // ACT - Execute the behavior
+    Money total = order.calculateTotal(discount);
 
-  // ASSERT - Verify the outcome
-  expect(total).toBe(90);
-});
+    // ASSERT - Verify the outcome
+    assertEquals(Money.dollars(90), total);
+}
 ```
 
 ## Writing Tests Backwards
@@ -119,12 +122,14 @@ Sometimes it helps to write AAA in reverse:
 - **One example per test** for easy debugging
 - Avoid leaking implementation details
 
-```typescript
+```java
 // BAD: Technical, implementation-focused
-it('should set the data property to 1', () => { ... });
+@Test
+void shouldSetDataPropertyTo1() { ... }
 
 // GOOD: Behavior-focused, domain language
-it('should recognize "mom" as a palindrome', () => { ... });
+@Test
+void shouldRecognizeMomAsPalindrome() { ... }
 ```
 
 ## Classic vs Mockist TDD

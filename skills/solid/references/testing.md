@@ -28,16 +28,17 @@ Test ONE class or function in isolation.
 - No external dependencies (mocked)
 - Most of your tests should be unit tests
 
-```typescript
-describe('Order', () => {
-  it('calculates total correctly', () => {
-    const order = new Order();
-    order.addItem({ price: 100 });
-    order.addItem({ price: 50 });
+```java
+class OrderTest {
+    @Test
+    void calculatesTotalCorrectly() {
+        Order order = new Order();
+        order.addItem(new OrderItem(Money.dollars(100)));
+        order.addItem(new OrderItem(Money.dollars(50)));
 
-    expect(order.calculateTotal()).toBe(150);
-  });
-});
+        assertEquals(Money.dollars(150), order.calculateTotal());
+    }
+}
 ```
 
 ### Integration Tests
@@ -49,24 +50,26 @@ Test multiple components together.
 - Test boundaries between components
 - Fewer than unit tests
 
-```typescript
-describe('OrderService Integration', () => {
-  let db: Database;
-  let service: OrderService;
+```java
+class OrderServiceIntegrationTest {
+    private Database db;
+    private OrderService service;
 
-  beforeAll(async () => {
-    db = await Database.connect();
-    service = new OrderService(new PostgresOrderRepo(db));
-  });
+    @BeforeAll
+    void setUp() {
+        db = Database.connect();
+        service = new OrderService(new PostgresOrderRepo(db));
+    }
 
-  it('saves and retrieves an order', async () => {
-    const order = Order.create({ customerId: '123' });
-    await service.save(order);
+    @Test
+    void savesAndRetrievesOrder() {
+        Order order = Order.create(new CustomerId("123"));
+        service.save(order);
 
-    const retrieved = await service.findById(order.id);
-    expect(retrieved).toEqual(order);
-  });
-});
+        Order retrieved = service.findById(order.getId());
+        assertEquals(order, retrieved);
+    }
+}
 ```
 
 ### E2E / Acceptance Tests
@@ -78,18 +81,19 @@ Test the entire system from user perspective.
 - Most brittle (many moving parts)
 - Test critical paths only
 
-```typescript
-describe('Checkout Flow', () => {
-  it('user can complete purchase', async () => {
-    await page.goto('/products');
-    await page.click('[data-testid="add-to-cart"]');
-    await page.click('[data-testid="checkout"]');
-    await page.fill('[name="card"]', '4242424242424242');
-    await page.click('[data-testid="pay"]');
+```java
+class CheckoutFlowTest {
+    @Test
+    void userCanCompletePurchase() {
+        page.goto("/products");
+        page.click("[data-testid='add-to-cart']");
+        page.click("[data-testid='checkout']");
+        page.fill("[name='card']", "4242424242424242");
+        page.click("[data-testid='pay']");
 
-    expect(await page.textContent('h1')).toBe('Order Confirmed');
-  });
-});
+        assertEquals("Order Confirmed", page.textContent("h1"));
+    }
+}
 ```
 
 ---
@@ -98,19 +102,20 @@ describe('Checkout Flow', () => {
 
 Structure EVERY test this way:
 
-```typescript
-it('applies discount to premium users', () => {
-  // ARRANGE - Set up the test world
-  const user = new User({ isPremium: true });
-  const cart = new Cart(user);
-  cart.addItem({ price: 100 });
+```java
+@Test
+void appliesDiscountToPremiumUsers() {
+    // ARRANGE - Set up the test world
+    User user = new User(AccountType.PREMIUM);
+    Cart cart = new Cart(user);
+    cart.addItem(new CartItem(Money.dollars(100)));
 
-  // ACT - Execute the behavior under test
-  const total = cart.calculateTotal();
+    // ACT - Execute the behavior under test
+    BigDecimal total = cart.calculateTotal();
 
-  // ASSERT - Verify the expected outcome
-  expect(total).toBe(80); // 20% discount
-});
+    // ASSERT - Verify the expected outcome
+    assertEquals(new BigDecimal("80"), total); // 20% discount
+}
 ```
 
 ### Writing AAA Backwards
@@ -127,35 +132,46 @@ Sometimes easier to write in reverse:
 
 ### Bad: Abstract, Technical
 
-```typescript
-it('should work correctly')
-it('handles the edge case')
-it('sets the data property')
+```java
+@Test
+void shouldWorkCorrectly() { }
+
+@Test
+void handlesTheEdgeCase() { }
+
+@Test
+void setsTheDataProperty() { }
 ```
 
 ### Good: Concrete Examples, Domain Language
 
-```typescript
-it('calculates 20% discount for premium users')
-it('returns error when cart is empty')
-it('recognizes "racecar" as a palindrome')
+```java
+@Test
+void calculates20PercentDiscountForPremiumUsers() { }
+
+@Test
+void returnsErrorWhenCartIsEmpty() { }
+
+@Test
+void recognizesRacecarAsPalindrome() { }
 ```
 
 ### Format
 
-```typescript
+```java
 // Option 1: should + behavior
-it('should apply tax based on shipping state')
+@Test
+void shouldApplyTaxBasedOnShippingState() { }
 
 // Option 2: when + then
-it('when adding 2 + 3, then returns 5')
+@Test
+void whenAdding2And3_thenReturns5() { }
 
 // Option 3: Given-When-Then (for complex scenarios)
-describe('given a premium user', () => {
-  describe('when they checkout', () => {
-    it('then they receive 20% discount', () => { ... });
-  });
-});
+class PremiumUserCheckoutTest {
+    @Test
+    void givenPremiumUser_whenCheckout_thenReceives20PercentDiscount() { ... }
+}
 ```
 
 ---
@@ -166,8 +182,10 @@ describe('given a premium user', () => {
 
 Object passed but never used.
 
-```typescript
-const dummyLogger = {} as Logger;
+```java
+Logger dummyLogger = new Logger() {
+    @Override public void log(String message) { }
+};
 new UserService(realRepo, dummyLogger);
 ```
 
@@ -175,10 +193,12 @@ new UserService(realRepo, dummyLogger);
 
 Returns predefined values.
 
-```typescript
-const stubRepo: UserRepo = {
-  findById: () => Promise.resolve(new User({ name: 'Test' })),
-  save: () => Promise.resolve(),
+```java
+UserRepo stubRepo = new UserRepo() {
+    @Override public User findById(String id) {
+        return new User("Test");
+    }
+    @Override public void save(User user) { }
 };
 ```
 
@@ -186,45 +206,53 @@ const stubRepo: UserRepo = {
 
 Records how it was called.
 
-```typescript
-const emailSpy = {
-  sentEmails: [] as string[],
-  send(to: string, message: string) {
-    this.sentEmails.push(to);
-  }
-};
+```java
+class EmailSpy implements EmailService {
+    final List<String> sentEmails = new ArrayList<>();
+
+    @Override
+    public void send(String to, String message) {
+        sentEmails.add(to);
+    }
+}
 
 // Later
-expect(emailSpy.sentEmails).toContain('user@example.com');
+assertTrue(emailSpy.sentEmails.contains("user@example.com"));
 ```
 
 ### Mock
 
 Verifies expected interactions.
 
-```typescript
-const mockRepo = jest.fn<UserRepo>();
-mockRepo.save.mockResolvedValue(undefined);
+```java
+// Using Mockito
+@Mock UserRepo mockRepo;
+
+@BeforeEach
+void setUp() {
+    MockitoAnnotations.openMocks(this);
+    when(mockRepo.save(any())).thenReturn(null);
+}
 
 // After test
-expect(mockRepo.save).toHaveBeenCalledWith(expectedUser);
+verify(mockRepo).save(expectedUser);
 ```
 
 ### Fake
 
 Working implementation (simplified).
 
-```typescript
+```java
 class InMemoryUserRepo implements UserRepo {
-  private users: Map<string, User> = new Map();
+    private final Map<String, User> users = new HashMap<>();
 
-  async save(user: User): Promise<void> {
-    this.users.set(user.id, user);
-  }
+    public void save(User user) {
+        users.put(user.getId(), user);
+    }
 
-  async findById(id: string): Promise<User | null> {
-    return this.users.get(id) || null;
-  }
+    public User findById(String id) {
+        return users.get(id);
+    }
 }
 ```
 
@@ -238,20 +266,22 @@ class InMemoryUserRepo implements UserRepo {
 - Test business rules, value objects, entities
 - Fast, comprehensive
 
-```typescript
-describe('Money', () => {
-  it('adds amounts with same currency', () => {
-    const a = Money.dollars(10);
-    const b = Money.dollars(20);
-    expect(a.add(b).equals(Money.dollars(30))).toBe(true);
-  });
+```java
+class MoneyTest {
+    @Test
+    void addsAmountsWithSameCurrency() {
+        Money a = Money.dollars(10);
+        Money b = Money.dollars(20);
+        assertEquals(Money.dollars(30), a.add(b));
+    }
 
-  it('throws when adding different currencies', () => {
-    const usd = Money.dollars(10);
-    const eur = Money.euros(10);
-    expect(() => usd.add(eur)).toThrow(CurrencyMismatch);
-  });
-});
+    @Test
+    void throwsWhenAddingDifferentCurrencies() {
+        Money usd = Money.dollars(10);
+        Money eur = Money.euros(10);
+        assertThrows(CurrencyMismatchException.class, () -> usd.add(eur));
+    }
+}
 ```
 
 ### Application Layer
@@ -259,19 +289,20 @@ describe('Money', () => {
 - Integration tests with mocked infrastructure
 - Test use case orchestration
 
-```typescript
-describe('CreateOrderUseCase', () => {
-  it('creates order and sends confirmation', async () => {
-    const orderRepo = new InMemoryOrderRepo();
-    const emailService = { send: jest.fn() };
-    const useCase = new CreateOrderUseCase(orderRepo, emailService);
+```java
+class CreateOrderUseCaseTest {
+    @Test
+    void createsOrderAndSendsConfirmation() {
+        InMemoryOrderRepo orderRepo = new InMemoryOrderRepo();
+        EmailService emailService = mock(EmailService.class);
+        CreateOrderUseCase useCase = new CreateOrderUseCase(orderRepo, emailService);
 
-    await useCase.execute({ customerId: '123', items: [...] });
+        useCase.execute(new CreateOrderRequest(new CustomerId("123"), List.of(...)));
 
-    expect(orderRepo.count()).toBe(1);
-    expect(emailService.send).toHaveBeenCalled();
-  });
-});
+        assertEquals(1, orderRepo.count());
+        verify(emailService).send(anyString(), anyString());
+    }
+}
 ```
 
 ### Infrastructure Layer
@@ -279,22 +310,24 @@ describe('CreateOrderUseCase', () => {
 - Integration tests with real dependencies
 - Test database, API integrations
 
-```typescript
-describe('PostgresOrderRepo', () => {
-  let repo: PostgresOrderRepo;
+```java
+class PostgresOrderRepoTest {
+    private PostgresOrderRepo repo;
 
-  beforeAll(async () => {
-    repo = new PostgresOrderRepo(testDb);
-  });
+    @BeforeAll
+    void setUp() {
+        repo = new PostgresOrderRepo(testDb);
+    }
 
-  it('persists and retrieves order', async () => {
-    const order = Order.create({ ... });
-    await repo.save(order);
+    @Test
+    void persistsAndRetrievesOrder() {
+        Order order = Order.create(...);
+        repo.save(order);
 
-    const found = await repo.findById(order.id);
-    expect(found).toEqual(order);
-  });
-});
+        Order found = repo.findById(order.getId());
+        assertEquals(order, found);
+    }
+}
 ```
 
 ---
@@ -311,33 +344,41 @@ Focus integration tests on:
 
 Verify implementations match interfaces.
 
-```typescript
-// Shared contract test
-function testUserRepoContract(createRepo: () => UserRepo) {
-  describe('UserRepo Contract', () => {
-    let repo: UserRepo;
+```java
+// Shared contract test using abstract class
+abstract class UserRepoContractTest {
+    abstract UserRepo createRepo();
+    
+    private UserRepo repo;
 
-    beforeEach(() => {
-      repo = createRepo();
-    });
+    @BeforeEach
+    void setUp() {
+        repo = createRepo();
+    }
 
-    it('saves and retrieves user', async () => {
-      const user = User.create({ name: 'Test' });
-      await repo.save(user);
-      const found = await repo.findById(user.id);
-      expect(found).toEqual(user);
-    });
+    @Test
+    void savesAndRetrievesUser() {
+        User user = User.create(new Name("Test"));
+        repo.save(user);
+        User found = repo.findById(user.getId());
+        assertEquals(user, found);
+    }
 
-    it('returns null for missing user', async () => {
-      const found = await repo.findById('nonexistent');
-      expect(found).toBeNull();
-    });
-  });
+    @Test
+    void returnsNullForMissingUser() {
+        User found = repo.findById(new UserId("nonexistent"));
+        assertNull(found);
+    }
 }
 
 // Apply to all implementations
-testUserRepoContract(() => new InMemoryUserRepo());
-testUserRepoContract(() => new PostgresUserRepo(testDb));
+class InMemoryUserRepoTest extends UserRepoContractTest {
+    UserRepo createRepo() { return new InMemoryUserRepo(); }
+}
+
+class PostgresUserRepoTest extends UserRepoContractTest {
+    UserRepo createRepo() { return new PostgresUserRepo(testDb); }
+}
 ```
 
 ---
@@ -346,40 +387,38 @@ testUserRepoContract(() => new PostgresUserRepo(testDb));
 
 Create test objects easily.
 
-```typescript
+```java
 class OrderBuilder {
-  private props: Partial<OrderProps> = {
-    id: 'order-1',
-    customerId: 'cust-1',
-    items: [],
-    status: 'pending',
-  };
+    private OrderId id = new OrderId("order-1");
+    private CustomerId customerId = new CustomerId("cust-1");
+    private List<Item> items = new ArrayList<>();
+    private OrderStatus status = OrderStatus.PENDING;
 
-  withId(id: string): OrderBuilder {
-    this.props.id = id;
-    return this;
-  }
+    OrderBuilder withId(OrderId id) {
+        this.id = id;
+        return this;
+    }
 
-  withItems(items: Item[]): OrderBuilder {
-    this.props.items = items;
-    return this;
-  }
+    OrderBuilder withItems(List<Item> items) {
+        this.items = items;
+        return this;
+    }
 
-  paid(): OrderBuilder {
-    this.props.status = 'paid';
-    return this;
-  }
+    OrderBuilder paid() {
+        this.status = OrderStatus.PAID;
+        return this;
+    }
 
-  build(): Order {
-    return Order.create(this.props as OrderProps);
-  }
+    Order build() {
+        return Order.create(id, customerId, items, status);
+    }
 }
 
 // Usage
-const order = new OrderBuilder()
-  .withItems([{ sku: 'ABC', price: 100 }])
-  .paid()
-  .build();
+Order order = new OrderBuilder()
+    .withItems(List.of(new Item(new Sku("ABC"), Money.dollars(100))))
+    .paid()
+    .build();
 ```
 
 ---

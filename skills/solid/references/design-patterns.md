@@ -29,20 +29,17 @@ Patterns should solve problems you HAVE, not problems you MIGHT have.
 
 **Warning:** Often overused. Consider dependency injection instead.
 
-```typescript
+```java
 class Logger {
-  private static instance: Logger;
+    private static final Logger INSTANCE = new Logger();
 
-  private constructor() {}
+    private Logger() {}
 
-  static getInstance(): Logger {
-    if (!Logger.instance) {
-      Logger.instance = new Logger();
+    static Logger getInstance() {
+        return INSTANCE;
     }
-    return Logger.instance;
-  }
 
-  log(message: string): void { ... }
+    void log(String message) { ... }
 }
 ```
 
@@ -52,9 +49,9 @@ class Logger {
 
 **When to use:** Object creation logic is complex, or varies by type.
 
-```typescript
+```java
 interface Notification {
-  send(message: string): void;
+    void send(String message);
 }
 
 class EmailNotification implements Notification { ... }
@@ -62,13 +59,14 @@ class SMSNotification implements Notification { ... }
 class PushNotification implements Notification { ... }
 
 class NotificationFactory {
-  create(type: 'email' | 'sms' | 'push'): Notification {
-    switch (type) {
-      case 'email': return new EmailNotification();
-      case 'sms': return new SMSNotification();
-      case 'push': return new PushNotification();
+    Notification create(String type) {
+        return switch (type) {
+            case "email" -> new EmailNotification();
+            case "sms" -> new SMSNotification();
+            case "push" -> new PushNotification();
+            default -> throw new IllegalArgumentException("Unknown type");
+        };
     }
-  }
 }
 ```
 
@@ -78,39 +76,37 @@ class NotificationFactory {
 
 **When to use:** Objects with many optional parameters, test data creation.
 
-```typescript
+```java
 class UserBuilder {
-  private user: Partial<User> = {};
+    private String name;
+    private String email;
+    private int age;
 
-  withName(name: string): UserBuilder {
-    this.user.name = name;
-    return this;
-  }
+    UserBuilder withName(String name) {
+        this.name = name;
+        return this;
+    }
 
-  withEmail(email: string): UserBuilder {
-    this.user.email = email;
-    return this;
-  }
+    UserBuilder withEmail(String email) {
+        this.email = email;
+        return this;
+    }
 
-  withAge(age: number): UserBuilder {
-    this.user.age = age;
-    return this;
-  }
+    UserBuilder withAge(int age) {
+        this.age = age;
+        return this;
+    }
 
-  build(): User {
-    return new User(
-      this.user.name!,
-      this.user.email!,
-      this.user.age
-    );
-  }
+    User build() {
+        return new User(name, email, age);
+    }
 }
 
 // Usage
-const user = new UserBuilder()
-  .withName('Alice')
-  .withEmail('alice@example.com')
-  .build();
+User user = new UserBuilder()
+    .withName("Alice")
+    .withEmail("alice@example.com")
+    .build();
 ```
 
 ### Prototype
@@ -119,25 +115,26 @@ const user = new UserBuilder()
 
 **When to use:** Object creation is expensive, or you need copies with slight variations.
 
-```typescript
-interface Prototype {
-  clone(): Prototype;
+```java
+interface Prototype<T> {
+    T clone();
 }
 
-class Document implements Prototype {
-  constructor(
-    public title: string,
-    public content: string,
-    public metadata: Metadata
-  ) {}
+class Document implements Prototype<Document> {
+    private final String title;
+    private final String content;
+    private final Metadata metadata;
 
-  clone(): Document {
-    return new Document(
-      this.title,
-      this.content,
-      { ...this.metadata }
-    );
-  }
+    Document(String title, String content, Metadata metadata) {
+        this.title = title;
+        this.content = content;
+        this.metadata = metadata;
+    }
+
+    @Override
+    public Document clone() {
+        return new Document(title, content, new Metadata(metadata));
+    }
 }
 ```
 
@@ -151,26 +148,30 @@ class Document implements Prototype {
 
 **When to use:** Integrating third-party libraries, legacy code.
 
-```typescript
+```java
 // Third-party library with different interface
 class OldPaymentAPI {
-  makePayment(cents: number): boolean { ... }
+    boolean makePayment(int cents) { ... }
 }
 
 // Our interface
 interface PaymentGateway {
-  charge(amount: Money): ChargeResult;
+    ChargeResult charge(Money amount);
 }
 
 // Adapter
 class OldPaymentAdapter implements PaymentGateway {
-  constructor(private oldAPI: OldPaymentAPI) {}
+    private final OldPaymentAPI oldAPI;
 
-  charge(amount: Money): ChargeResult {
-    const cents = amount.toCents();
-    const success = this.oldAPI.makePayment(cents);
-    return success ? ChargeResult.success() : ChargeResult.failed();
-  }
+    OldPaymentAdapter(OldPaymentAPI oldAPI) {
+        this.oldAPI = oldAPI;
+    }
+
+    public ChargeResult charge(Money amount) {
+        int cents = amount.toCents();
+        boolean success = oldAPI.makePayment(cents);
+        return success ? ChargeResult.success() : ChargeResult.failed();
+    }
 }
 ```
 
@@ -180,43 +181,51 @@ class OldPaymentAdapter implements PaymentGateway {
 
 **When to use:** Adding features without modifying existing code.
 
-```typescript
+```java
 interface Notifier {
-  send(message: string): void;
+    void send(String message);
 }
 
 class EmailNotifier implements Notifier {
-  send(message: string): void {
-    console.log(`Email: ${message}`);
-  }
+    public void send(String message) {
+        System.out.println("Email: " + message);
+    }
 }
 
 // Decorators
 class SMSDecorator implements Notifier {
-  constructor(private wrapped: Notifier) {}
+    private final Notifier wrapped;
 
-  send(message: string): void {
-    this.wrapped.send(message);
-    console.log(`SMS: ${message}`);
-  }
+    SMSDecorator(Notifier wrapped) {
+        this.wrapped = wrapped;
+    }
+
+    public void send(String message) {
+        wrapped.send(message);
+        System.out.println("SMS: " + message);
+    }
 }
 
 class SlackDecorator implements Notifier {
-  constructor(private wrapped: Notifier) {}
+    private final Notifier wrapped;
 
-  send(message: string): void {
-    this.wrapped.send(message);
-    console.log(`Slack: ${message}`);
-  }
+    SlackDecorator(Notifier wrapped) {
+        this.wrapped = wrapped;
+    }
+
+    public void send(String message) {
+        wrapped.send(message);
+        System.out.println("Slack: " + message);
+    }
 }
 
 // Usage - compose behaviors
-const notifier = new SlackDecorator(
-  new SMSDecorator(
-    new EmailNotifier()
-  )
+Notifier notifier = new SlackDecorator(
+    new SMSDecorator(
+        new EmailNotifier()
+    )
 );
-notifier.send('Alert!'); // Sends to all three
+notifier.send("Alert!"); // Sends to all three
 ```
 
 ### Proxy
@@ -225,33 +234,39 @@ notifier.send('Alert!'); // Sends to all three
 
 **When to use:** Lazy loading, access control, logging, caching.
 
-```typescript
+```java
 interface Image {
-  display(): void;
+    void display();
 }
 
 class RealImage implements Image {
-  constructor(private filename: string) {
-    this.loadFromDisk(); // Expensive
-  }
+    private final String filename;
 
-  private loadFromDisk(): void { ... }
+    RealImage(String filename) {
+        this.filename = filename;
+        loadFromDisk(); // Expensive
+    }
 
-  display(): void { ... }
+    private void loadFromDisk() { ... }
+
+    public void display() { ... }
 }
 
 // Lazy loading proxy
 class ImageProxy implements Image {
-  private realImage: RealImage | null = null;
+    private RealImage realImage;
+    private final String filename;
 
-  constructor(private filename: string) {}
-
-  display(): void {
-    if (!this.realImage) {
-      this.realImage = new RealImage(this.filename);
+    ImageProxy(String filename) {
+        this.filename = filename;
     }
-    this.realImage.display();
-  }
+
+    public void display() {
+        if (realImage == null) {
+            realImage = new RealImage(filename);
+        }
+        realImage.display();
+    }
 }
 ```
 
@@ -261,44 +276,47 @@ class ImageProxy implements Image {
 
 **When to use:** Tree structures, hierarchies (files/folders, UI components).
 
-```typescript
+```java
 interface Component {
-  getPrice(): number;
+    Money getPrice();
 }
 
 class Product implements Component {
-  constructor(private price: number) {}
+    private final Money price;
 
-  getPrice(): number {
-    return this.price;
-  }
+    Product(Money price) {
+        this.price = price;
+    }
+
+    public Money getPrice() {
+        return price;
+    }
 }
 
 class Box implements Component {
-  private children: Component[] = [];
+    private final List<Component> children = new ArrayList<>();
 
-  add(component: Component): void {
-    this.children.push(component);
-  }
+    void add(Component component) {
+        children.add(component);
+    }
 
-  getPrice(): number {
-    return this.children.reduce(
-      (sum, child) => sum + child.getPrice(),
-      0
-    );
-  }
+    public Money getPrice() {
+        return children.stream()
+            .map(Component::getPrice)
+            .reduce(Money.zero(), Money::add);
+    }
 }
 
 // Usage
-const smallBox = new Box();
-smallBox.add(new Product(10));
-smallBox.add(new Product(20));
+Box smallBox = new Box();
+smallBox.add(new Product(Money.dollars(10)));
+smallBox.add(new Product(Money.dollars(20)));
 
-const bigBox = new Box();
+Box bigBox = new Box();
 bigBox.add(smallBox);
-bigBox.add(new Product(50));
+bigBox.add(new Product(Money.dollars(50)));
 
-console.log(bigBox.getPrice()); // 80
+System.out.println(bigBox.getPrice()); // $80.00
 ```
 
 ---
@@ -311,36 +329,42 @@ console.log(bigBox.getPrice()); // 80
 
 **When to use:** Multiple ways to do something, switchable at runtime.
 
-```typescript
+```java
 interface PricingStrategy {
-  calculate(basePrice: number): number;
+    Money calculate(Money basePrice);
 }
 
 class RegularPricing implements PricingStrategy {
-  calculate(basePrice: number): number {
-    return basePrice;
-  }
+    public Money calculate(Money basePrice) {
+        return basePrice;
+    }
 }
 
 class PremiumDiscount implements PricingStrategy {
-  calculate(basePrice: number): number {
-    return basePrice * 0.8; // 20% off
-  }
+    public Money calculate(Money basePrice) {
+        return basePrice.multiply(0.8); // 20% off
+    }
 }
 
 class BlackFriday implements PricingStrategy {
-  calculate(basePrice: number): number {
-    return basePrice * 0.5; // 50% off
-  }
+    public Money calculate(Money basePrice) {
+        return basePrice.multiply(0.5); // 50% off
+    }
 }
 
 class ShoppingCart {
-  constructor(private pricing: PricingStrategy) {}
+    private final PricingStrategy pricing;
 
-  calculateTotal(items: Item[]): number {
-    const base = items.reduce((sum, i) => sum + i.price, 0);
-    return this.pricing.calculate(base);
-  }
+    ShoppingCart(PricingStrategy pricing) {
+        this.pricing = pricing;
+    }
+
+    Money calculateTotal(List<Item> items) {
+        Money base = items.stream()
+            .map(Item::getPrice)
+            .reduce(Money.zero(), Money::add);
+        return pricing.calculate(base);
+    }
 }
 ```
 
@@ -350,41 +374,43 @@ class ShoppingCart {
 
 **When to use:** Event systems, pub/sub, reactive updates.
 
-```typescript
+```java
 interface Observer {
-  update(event: Event): void;
+    void update(Event event);
 }
 
 class EventEmitter {
-  private observers: Observer[] = [];
+    private final List<Observer> observers = new ArrayList<>();
 
-  subscribe(observer: Observer): void {
-    this.observers.push(observer);
-  }
+    void subscribe(Observer observer) {
+        observers.add(observer);
+    }
 
-  unsubscribe(observer: Observer): void {
-    this.observers = this.observers.filter(o => o !== observer);
-  }
+    void unsubscribe(Observer observer) {
+        observers.remove(observer);
+    }
 
-  notify(event: Event): void {
-    this.observers.forEach(o => o.update(event));
-  }
+    void notify(Event event) {
+        for (Observer o : observers) {
+            o.update(event);
+        }
+    }
 }
 
 // Usage
 class OrderService extends EventEmitter {
-  placeOrder(order: Order): void {
-    // Process order...
-    this.notify({ type: 'ORDER_PLACED', order });
-  }
+    void placeOrder(Order order) {
+        // Process order...
+        notify(new Event("ORDER_PLACED", order));
+    }
 }
 
 class EmailService implements Observer {
-  update(event: Event): void {
-    if (event.type === 'ORDER_PLACED') {
-      this.sendConfirmation(event.order);
+    public void update(Event event) {
+        if ("ORDER_PLACED".equals(event.getType())) {
+            sendConfirmation(event.getOrder());
+        }
     }
-  }
 }
 ```
 
@@ -394,43 +420,46 @@ class EmailService implements Observer {
 
 **When to use:** Common algorithm with varying steps.
 
-```typescript
+```java
 abstract class DataExporter {
-  // Template method - defines the algorithm
-  export(data: Data[]): void {
-    this.validate(data);
-    const formatted = this.format(data);
-    this.write(formatted);
-    this.notify();
-  }
+    // Template method - defines the algorithm
+    void export(List<Data> data) {
+        validate(data);
+        String formatted = format(data);
+        write(formatted);
+        notify();
+    }
 
-  // Common steps
-  private validate(data: Data[]): void { ... }
-  private notify(): void { ... }
+    // Common steps
+    private void validate(List<Data> data) { ... }
+    private void notify() { ... }
 
-  // Steps to override
-  protected abstract format(data: Data[]): string;
-  protected abstract write(content: string): void;
+    // Steps to override
+    protected abstract String format(List<Data> data);
+    protected abstract void write(String content);
 }
 
 class CSVExporter extends DataExporter {
-  protected format(data: Data[]): string {
-    return data.map(d => d.toCSV()).join('\n');
-  }
+    protected String format(List<Data> data) {
+        return data.stream()
+            .map(Data::toCSV)
+            .collect(Collectors.joining("\n"));
+    }
 
-  protected write(content: string): void {
-    fs.writeFileSync('export.csv', content);
-  }
+    protected void write(String content) {
+        // Write to export.csv
+    }
 }
 
 class JSONExporter extends DataExporter {
-  protected format(data: Data[]): string {
-    return JSON.stringify(data);
-  }
+    protected String format(List<Data> data) {
+        // Convert to JSON
+        return "...";
+    }
 
-  protected write(content: string): void {
-    fs.writeFileSync('export.json', content);
-  }
+    protected void write(String content) {
+        // Write to export.json
+    }
 }
 ```
 
@@ -440,39 +469,44 @@ class JSONExporter extends DataExporter {
 
 **When to use:** Undo/redo, queuing, logging actions.
 
-```typescript
+```java
 interface Command {
-  execute(): void;
-  undo(): void;
+    void execute();
+    void undo();
 }
 
 class AddItemCommand implements Command {
-  constructor(
-    private cart: Cart,
-    private item: Item
-  ) {}
+    private final Cart cart;
+    private final Item item;
 
-  execute(): void {
-    this.cart.add(this.item);
-  }
+    AddItemCommand(Cart cart, Item item) {
+        this.cart = cart;
+        this.item = item;
+    }
 
-  undo(): void {
-    this.cart.remove(this.item);
-  }
+    public void execute() {
+        cart.add(item);
+    }
+
+    public void undo() {
+        cart.remove(item);
+    }
 }
 
 class CommandHistory {
-  private history: Command[] = [];
+    private final Deque<Command> history = new ArrayDeque<>();
 
-  execute(command: Command): void {
-    command.execute();
-    this.history.push(command);
-  }
+    void execute(Command command) {
+        command.execute();
+        history.push(command);
+    }
 
-  undo(): void {
-    const command = this.history.pop();
-    command?.undo();
-  }
+    void undo() {
+        Command command = history.poll();
+        if (command != null) {
+            command.undo();
+        }
+    }
 }
 ```
 

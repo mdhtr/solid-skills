@@ -75,18 +75,18 @@ Respect future readers (including yourself). Write for humans first.
 3. Prefer boring, well-understood approaches
 4. Question every abstraction
 
-```typescript
+```java
 // Over-engineered
 class UserServiceFactoryProvider {
-  private static instance: UserServiceFactoryProvider;
+    private static UserServiceFactoryProvider instance;
 
-  static getInstance(): UserServiceFactoryProvider { ... }
-  createFactory(): UserServiceFactory { ... }
+    static UserServiceFactoryProvider getInstance() { ... }
+    UserServiceFactory createFactory() { ... }
 }
 
 // KISS
 class UserService {
-  getUser(id: string): User { ... }
+    User getUser(String id) { ... }
 }
 ```
 
@@ -108,21 +108,21 @@ class UserService {
 3. **Cognitive load** - More to understand
 4. **Wrong abstraction** - Guessing future needs incorrectly
 
-```typescript
+```java
 // YAGNI violation: Building for hypothetical needs
 class User {
-  // "We might need these someday"
-  middleName?: string;
-  secondaryEmail?: string;
-  faxNumber?: string;
-  linkedinProfile?: string;
-  twitterHandle?: string;
+    // "We might need these someday"
+    String middleName;
+    String secondaryEmail;
+    String faxNumber;
+    String linkedinProfile;
+    String twitterHandle;
 }
 
 // YAGNI: Only what's needed NOW
 class User {
-  name: string;
-  email: Email;
+    String name;
+    Email email;
 }
 ```
 
@@ -145,36 +145,36 @@ Duplication #3 → NOW extract it
 ```
 
 ### Example:
-```typescript
+```java
 // First time - leave it
-function processUserOrder(order) {
-  validate(order);
-  calculateTax(order);
-  save(order);
+void processUserOrder(Order order) {
+    validate(order);
+    calculateTax(order);
+    save(order);
 }
 
 // Second time - note the similarity, but leave it
-function processGuestOrder(order) {
-  validate(order);
-  calculateTax(order);
-  save(order);
-  sendGuestEmail(order);
+void processGuestOrder(Order order) {
+    validate(order);
+    calculateTax(order);
+    save(order);
+    sendGuestEmail(order);
 }
 
 // Third time - NOW extract
-function processCorporateOrder(order) {
-  validate(order);
-  calculateTax(order);
-  save(order);
-  applyCorporateDiscount(order);
+void processCorporateOrder(Order order) {
+    validate(order);
+    calculateTax(order);
+    save(order);
+    applyCorporateDiscount(order);
 }
 
 // After three, extract the common parts
-function processOrder(order: Order, postProcessing: (o: Order) => void) {
-  validate(order);
-  calculateTax(order);
-  save(order);
-  postProcessing(order);
+void processOrder(Order order, Consumer<Order> postProcessing) {
+    validate(order);
+    calculateTax(order);
+    save(order);
+    postProcessing.accept(order);
 }
 ```
 
@@ -191,45 +191,51 @@ function processOrder(order: Order, postProcessing: (o: Order) => void) {
 - **Data** vs **Behavior**
 
 ### Example:
-```typescript
+```java
 // BAD: Mixed concerns
 class OrderProcessor {
-  process(order: Order) {
-    // Validation
-    if (!order.items.length) throw new Error('Empty');
+    void process(Order order) {
+        // Validation
+        if (order.getItems().isEmpty()) throw new IllegalArgumentException("Empty");
 
-    // Business logic
-    let total = 0;
-    for (const item of order.items) {
-      total += item.price * item.quantity;
+        // Business logic
+        BigDecimal total = BigDecimal.ZERO;
+        for (OrderItem item : order.getItems()) {
+            total = total.add(item.getPrice().multiply(BigDecimal.valueOf(item.getQuantity())));
+        }
+
+        // Persistence
+        Database db = new Database();
+        db.query("INSERT INTO orders...");
+
+        // Notification
+        EmailClient email = new EmailClient();
+        email.send(order.getCustomer().getEmail(), "Order confirmed");
     }
-
-    // Persistence
-    const db = new Database();
-    db.query(`INSERT INTO orders...`);
-
-    // Notification
-    const email = new EmailClient();
-    email.send(order.customer.email, 'Order confirmed');
-  }
 }
 
 // GOOD: Separated concerns
 class OrderProcessor {
-  constructor(
-    private validator: OrderValidator,
-    private calculator: OrderCalculator,
-    private repository: OrderRepository,
-    private notifier: OrderNotifier
-  ) {}
+    private final OrderValidator validator;
+    private final OrderCalculator calculator;
+    private final OrderRepository repository;
+    private final OrderNotifier notifier;
 
-  process(order: Order): ProcessResult {
-    this.validator.validate(order);
-    const total = this.calculator.calculateTotal(order);
-    const savedOrder = this.repository.save(order);
-    this.notifier.notifyConfirmation(savedOrder);
-    return ProcessResult.success(savedOrder);
-  }
+    OrderProcessor(OrderValidator validator, OrderCalculator calculator,
+                     OrderRepository repository, OrderNotifier notifier) {
+        this.validator = validator;
+        this.calculator = calculator;
+        this.repository = repository;
+        this.notifier = notifier;
+    }
+
+    ProcessResult process(Order order) {
+        validator.validate(order);
+        Money total = calculator.calculateTotal(order);
+        Order savedOrder = repository.save(order);
+        notifier.notifyConfirmation(savedOrder);
+        return ProcessResult.success(savedOrder);
+    }
 }
 ```
 

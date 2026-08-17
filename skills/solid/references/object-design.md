@@ -45,17 +45,17 @@ If you can't answer clearly, the class needs refactoring.
 
 **Command objects to do work. Don't interrogate them and do the work yourself.**
 
-```typescript
+```java
 // BAD: Asking, then doing
-if (account.getBalance() >= amount) {
-  account.setBalance(account.getBalance() - amount);
-  // more logic here...
+if (account.getBalance().compareTo(amount) >= 0) {
+    account.setBalance(account.getBalance().subtract(amount));
+    // more logic here...
 }
 
 // GOOD: Telling
-const result = account.withdraw(amount);
+WithdrawResult result = account.withdraw(amount);
 if (result.isSuccess()) {
-  // ...
+    // ...
 }
 ```
 
@@ -70,26 +70,26 @@ Every method has:
 - **Postconditions** - What will be true AFTER calling
 - **Invariants** - What is ALWAYS true about the object
 
-```typescript
+```java
 class BankAccount {
-  private balance: Money;
+    private Money balance;
 
-  // INVARIANT: balance is never negative
+    // INVARIANT: balance is never negative
 
-  // PRECONDITION: amount > 0
-  // POSTCONDITION: balance decreased by amount OR error returned
-  withdraw(amount: Money): WithdrawResult {
-    if (amount.isNegativeOrZero()) {
-      return WithdrawResult.invalidAmount();
+    // PRECONDITION: amount > 0
+    // POSTCONDITION: balance decreased by amount OR error returned
+    WithdrawResult withdraw(Money amount) {
+        if (amount.isNegativeOrZero()) {
+            return WithdrawResult.invalidAmount();
+        }
+
+        if (balance.isLessThan(amount)) {
+            return WithdrawResult.insufficientFunds();
+        }
+
+        balance = balance.subtract(amount);
+        return WithdrawResult.success(balance);
     }
-
-    if (this.balance.isLessThan(amount)) {
-      return WithdrawResult.insufficientFunds();
-    }
-
-    this.balance = this.balance.minus(amount);
-    return WithdrawResult.success(this.balance);
-  }
 }
 ```
 
@@ -111,19 +111,23 @@ class BankAccount {
 - Template Method pattern (intentional)
 
 ### Prefer Composition:
-```typescript
+```java
 // BAD: Inheritance
 class PremiumUser extends User {
-  getDiscount(): number { return 20; }
+    int getDiscount() { return 20; }
 }
 
 // GOOD: Composition
 class User {
-  constructor(private discountPolicy: DiscountPolicy) {}
+    private final DiscountPolicy discountPolicy;
 
-  getDiscount(): number {
-    return this.discountPolicy.calculate();
-  }
+    User(DiscountPolicy discountPolicy) {
+        this.discountPolicy = discountPolicy;
+    }
+
+    int getDiscount() {
+        return discountPolicy.calculate();
+    }
 }
 
 // Now discount behavior is pluggable
@@ -144,7 +148,7 @@ A method should only call:
 3. Methods on objects it creates
 4. Methods on its direct components
 
-```typescript
+```java
 // BAD: Reaching through objects
 order.getCustomer().getAddress().getCity();
 
@@ -166,30 +170,30 @@ This reduces coupling - changes to `Address` don't ripple through all callers.
 3. **Type** - concrete class hidden behind interface
 4. **Design** - architectural decisions hidden from clients
 
-```typescript
+```java
 // BAD: Exposed internals
 class Order {
-  public items: Item[] = [];
-  public total: number = 0;
+    public List<Item> items = new ArrayList<>();
+    public BigDecimal total = BigDecimal.ZERO;
 }
 
 // Client can corrupt state
-order.items.push(item);
-order.total = -999; // Oops!
+order.items.add(item);
+order.total = new BigDecimal("-999"); // Oops!
 
 // GOOD: Encapsulated
 class Order {
-  private items: OrderItems;
-  private total: Money;
+    private OrderItems items;
+    private Money total;
 
-  addItem(item: Item): void {
-    this.items.add(item);
-    this.recalculateTotal();
-  }
+    void addItem(Item item) {
+        items.add(item);
+        recalculateTotal();
+    }
 
-  getTotal(): Money {
-    return this.total; // Returns copy or immutable
-  }
+    Money getTotal() {
+        return total; // Returns copy or immutable
+    }
 }
 ```
 
@@ -199,35 +203,35 @@ class Order {
 
 **Replace conditionals with types.**
 
-```typescript
+```java
 // BAD: Type checking
-function calculateShipping(method: string, value: number): number {
-  if (method === 'standard') return value < 50 ? 5 : 0;
-  if (method === 'express') return 15;
-  if (method === 'overnight') return 25;
-  throw new Error('Unknown method');
+BigDecimal calculateShipping(String method, BigDecimal value) {
+    if ("standard".equals(method)) return value.compareTo(BigDecimal.valueOf(50)) < 0 ? BigDecimal.valueOf(5) : BigDecimal.ZERO;
+    if ("express".equals(method)) return BigDecimal.valueOf(15);
+    if ("overnight".equals(method)) return BigDecimal.valueOf(25);
+    throw new IllegalArgumentException("Unknown method");
 }
 
 // GOOD: Polymorphism
 interface ShippingMethod {
-  calculateCost(orderValue: number): number;
+    BigDecimal calculateCost(BigDecimal orderValue);
 }
 
 class StandardShipping implements ShippingMethod {
-  calculateCost(orderValue: number): number {
-    return orderValue < 50 ? 5 : 0;
-  }
+    public BigDecimal calculateCost(BigDecimal orderValue) {
+        return orderValue.compareTo(BigDecimal.valueOf(50)) < 0 ? BigDecimal.valueOf(5) : BigDecimal.ZERO;
+    }
 }
 
 class ExpressShipping implements ShippingMethod {
-  calculateCost(orderValue: number): number {
-    return 15;
-  }
+    public BigDecimal calculateCost(BigDecimal orderValue) {
+        return BigDecimal.valueOf(15);
+    }
 }
 
 // Usage - no conditionals
-function calculateShipping(method: ShippingMethod, value: number): number {
-  return method.calculateCost(value);
+BigDecimal calculateShipping(ShippingMethod method, BigDecimal value) {
+    return method.calculateCost(value);
 }
 ```
 
@@ -241,24 +245,31 @@ function calculateShipping(method: ShippingMethod, value: number): number {
 - Comparable by value
 - Examples: `Money`, `Email`, `Address`, `DateRange`
 
-```typescript
-class Money {
-  constructor(
-    private readonly amount: number,
-    private readonly currency: string
-  ) {}
+```java
+public final class Money {
+    private final BigDecimal amount;
+    private final Currency currency;
 
-  equals(other: Money): boolean {
-    return this.amount === other.amount &&
-           this.currency === other.currency;
-  }
-
-  add(other: Money): Money {
-    if (this.currency !== other.currency) {
-      throw new CurrencyMismatch();
+    public Money(BigDecimal amount, Currency currency) {
+        this.amount = amount;
+        this.currency = currency;
     }
-    return new Money(this.amount + other.amount, this.currency);
-  }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+        if (!(obj instanceof Money)) return false;
+        Money other = (Money) obj;
+        return amount.equals(other.amount) &&
+               currency.equals(other.currency);
+    }
+
+    public Money add(Money other) {
+        if (!currency.equals(other.currency)) {
+            throw new CurrencyMismatchException();
+        }
+        return new Money(amount.add(other.amount), currency);
+    }
 }
 ```
 
@@ -268,21 +279,29 @@ class Money {
 - Comparable by identity
 - Examples: `User`, `Order`, `Product`
 
-```typescript
-class User {
-  constructor(
-    private readonly id: UserId,
-    private email: Email,
-    private name: Name
-  ) {}
+```java
+public class User {
+    private final UserId id;
+    private Email email;
+    private Name name;
 
-  equals(other: User): boolean {
-    return this.id.equals(other.id); // Identity comparison
-  }
+    public User(UserId id, Email email, Name name) {
+        this.id = id;
+        this.email = email;
+        this.name = name;
+    }
 
-  changeEmail(newEmail: Email): void {
-    this.email = newEmail; // Still same user
-  }
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+        if (!(obj instanceof User)) return false;
+        User other = (User) obj;
+        return id.equals(other.id); // Identity comparison
+    }
+
+    public void changeEmail(Email newEmail) {
+        this.email = newEmail; // Still same user
+    }
 }
 ```
 
@@ -296,32 +315,32 @@ A cluster of objects treated as a single unit for data changes.
 - External code only references the root
 - Root enforces invariants for the entire cluster
 
-```typescript
+```java
 // Order is the aggregate root
 class Order {
-  private items: OrderItem[] = [];
+    private List<OrderItem> items = new ArrayList<>();
 
-  // All access through the root
-  addItem(product: Product, quantity: number): void {
-    const item = new OrderItem(product, quantity);
-    this.items.push(item);
-    this.validateTotal();
-  }
-
-  removeItem(itemId: ItemId): void {
-    this.items = this.items.filter(i => !i.id.equals(itemId));
-  }
-
-  // Root enforces invariants
-  private validateTotal(): void {
-    if (this.calculateTotal().exceeds(MAX_ORDER_VALUE)) {
-      throw new OrderTotalExceeded();
+    // All access through the root
+    void addItem(Product product, int quantity) {
+        OrderItem item = new OrderItem(product, quantity);
+        items.add(item);
+        validateTotal();
     }
-  }
+
+    void removeItem(ItemId itemId) {
+        items.removeIf(i -> !i.getId().equals(itemId));
+    }
+
+    // Root enforces invariants
+    private void validateTotal() {
+        if (calculateTotal().exceeds(MAX_ORDER_VALUE)) {
+            throw new OrderTotalExceededException();
+        }
+    }
 }
 
 // BAD: Accessing items directly
-order.items.push(new OrderItem(...)); // Bypasses validation!
+order.items.add(new OrderItem(...)); // Bypasses validation!
 
 // GOOD: Through the root
 order.addItem(product, 2); // Validation happens

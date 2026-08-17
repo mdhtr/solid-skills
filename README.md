@@ -8,7 +8,9 @@ Skills follow the [Agent Skills](https://github.com/anthropics/skills) format.
 
 ### solid
 
-Transform junior-level code into senior-engineer quality software. Primarily designed for **TypeScript** and **NestJS** projects, but applicable to any object-oriented codebase.
+Transform junior-level code into senior-engineer quality software. 
+Primarily designed for **TypeScript** and **NestJS** projects, but applicable to any object-oriented codebase.
+This version is ported to **Java**.
 
 **Use when:**
 

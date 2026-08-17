@@ -65,39 +65,39 @@ Excessive coupling between classes.
 
 **Symptom:** Method > 10 lines, doing multiple things.
 
-```typescript
+```java
 // SMELL
-function processOrder(order: Order) {
-  // Validate
-  if (!order.items.length) throw new Error('Empty');
-  if (!order.customer) throw new Error('No customer');
+void processOrder(Order order) {
+    // Validate
+    if (order.getItems().isEmpty()) throw new IllegalArgumentException("Empty");
+    if (order.getCustomer() == null) throw new IllegalArgumentException("No customer");
 
-  // Calculate
-  let total = 0;
-  for (const item of order.items) {
-    total += item.price * item.quantity;
-    if (item.discount) {
-      total -= item.discount;
+    // Calculate
+    Money total = Money.zero();
+    for (OrderItem item : order.getItems()) {
+        total = total.add(item.getPrice().multiply(item.getQuantity()));
+        if (item.getDiscount() != null) {
+            total = total.subtract(item.getDiscount());
+        }
     }
-  }
 
-  // Apply tax
-  const taxRate = getTaxRate(order.customer.state);
-  total = total * (1 + taxRate);
+    // Apply tax
+    BigDecimal taxRate = getTaxRate(order.getCustomer().getState());
+    total = total.add(total.multiply(taxRate));
 
-  // Save
-  db.orders.insert({ ...order, total });
+    // Save
+    db.orders.insert(order, total);
 
-  // Notify
-  emailService.send(order.customer.email, 'Order confirmed');
+    // Notify
+    emailService.send(order.getCustomer().getEmail(), "Order confirmed");
 }
 
 // REFACTORED
-function processOrder(order: Order) {
-  validateOrder(order);
-  const total = calculateTotal(order);
-  saveOrder(order, total);
-  notifyCustomer(order);
+void processOrder(Order order) {
+    validateOrder(order);
+    Money total = calculateTotal(order);
+    saveOrder(order, total);
+    notifyCustomer(order);
 }
 ```
 
@@ -105,70 +105,70 @@ function processOrder(order: Order) {
 
 **Symptom:** Class with many responsibilities, > 50 lines.
 
-```typescript
+```java
 // SMELL: God class
 class User {
-  // User data
-  name: string;
-  email: string;
+    // User data
+    String name;
+    String email;
 
-  // Authentication
-  login() { }
-  logout() { }
-  resetPassword() { }
+    // Authentication
+    void login() { }
+    void logout() { }
+    void resetPassword() { }
 
-  // Preferences
-  setTheme() { }
-  setLanguage() { }
+    // Preferences
+    void setTheme() { }
+    void setLanguage() { }
 
-  // Notifications
-  sendEmail() { }
-  sendSMS() { }
+    // Notifications
+    void sendEmail() { }
+    void sendSMS() { }
 
-  // Billing
-  charge() { }
-  refund() { }
+    // Billing
+    void charge() { }
+    void refund() { }
 }
 
 // REFACTORED: Separate classes
-class User { name: string; email: string; }
-class AuthService { login(); logout(); resetPassword(); }
-class UserPreferences { setTheme(); setLanguage(); }
-class NotificationService { sendEmail(); sendSMS(); }
-class BillingService { charge(); refund(); }
+class User { String name; String email; }
+class AuthService { void login(); void logout(); void resetPassword(); }
+class UserPreferences { void setTheme(); void setLanguage(); }
+class NotificationService { void sendEmail(); void sendSMS(); }
+class BillingService { void charge(); void refund(); }
 ```
 
 ### 3. Feature Envy
 
 **Symptom:** Method uses another class's data more than its own.
 
-```typescript
+```java
 // SMELL: Order envies Customer
 class Order {
-  calculateShipping(customer: Customer): number {
-    if (customer.country === 'US') {
-      if (customer.state === 'CA') return 10;
-      return 15;
+    Money calculateShipping(Customer customer) {
+        if ("US".equals(customer.getCountry())) {
+            if ("CA".equals(customer.getState())) return Money.dollars(10);
+            return Money.dollars(15);
+        }
+        return Money.dollars(25);
     }
-    return 25;
-  }
 }
 
 // REFACTORED: Move to Customer
 class Customer {
-  getShippingCost(): number {
-    if (this.country === 'US') {
-      if (this.state === 'CA') return 10;
-      return 15;
+    Money getShippingCost() {
+        if ("US".equals(country)) {
+            if ("CA".equals(state)) return Money.dollars(10);
+            return Money.dollars(15);
+        }
+        return Money.dollars(25);
     }
-    return 25;
-  }
 }
 
 class Order {
-  calculateShipping(): number {
-    return this.customer.getShippingCost();
-  }
+    Money calculateShipping() {
+        return customer.getShippingCost();
+    }
 }
 ```
 
@@ -176,29 +176,35 @@ class Order {
 
 **Symptom:** Using primitives for domain concepts.
 
-```typescript
+```java
 // SMELL
-function createUser(email: string, age: number, zipCode: string) {
-  // No validation, easy to pass wrong values
-  if (!email.includes('@')) throw new Error();
-  if (age < 0) throw new Error();
+void createUser(String email, int age, String zipCode) {
+    // No validation, easy to pass wrong values
+    if (!email.contains("@")) throw new IllegalArgumentException();
+    if (age < 0) throw new IllegalArgumentException();
 }
 
 // REFACTORED: Value objects
-class Email {
-  constructor(private value: string) {
-    if (!value.includes('@')) throw new InvalidEmail();
-  }
+public final class Email {
+    private final String value;
+    public Email(String value) {
+        if (!value.contains("@")) throw new IllegalArgumentException("Invalid email");
+        this.value = value;
+    }
+    public String getValue() { return value; }
 }
 
-class Age {
-  constructor(private value: number) {
-    if (value < 0 || value > 150) throw new InvalidAge();
-  }
+public final class Age {
+    private final int value;
+    public Age(int value) {
+        if (value < 0 || value > 150) throw new IllegalArgumentException("Invalid age");
+        this.value = value;
+    }
+    public int getValue() { return value; }
 }
 
-function createUser(email: Email, age: Age, address: Address) {
-  // Type system prevents invalid data
+void createUser(Email email, Age age, Address address) {
+    // Type system prevents invalid data
 }
 ```
 
@@ -206,33 +212,36 @@ function createUser(email: Email, age: Age, address: Address) {
 
 **Symptom:** Switching on type, repeated across codebase.
 
-```typescript
+```java
 // SMELL
-function getArea(shape: Shape): number {
-  switch (shape.type) {
-    case 'circle': return Math.PI * shape.radius ** 2;
-    case 'rectangle': return shape.width * shape.height;
-    case 'triangle': return 0.5 * shape.base * shape.height;
-  }
+double getArea(Shape shape) {
+    switch (shape.getType()) {
+        case "circle": return Math.PI * Math.pow(shape.getRadius(), 2);
+        case "rectangle": return shape.getWidth() * shape.getHeight();
+        case "triangle": return 0.5 * shape.getBase() * shape.getHeight();
+    }
+    return 0;
 }
 
-function getPerimeter(shape: Shape): number {
-  switch (shape.type) { // Same switch again!
-    case 'circle': return 2 * Math.PI * shape.radius;
-    // ...
-  }
+double getPerimeter(Shape shape) {
+    switch (shape.getType()) { // Same switch again!
+        case "circle": return 2 * Math.PI * shape.getRadius();
+        // ...
+    }
+    return 0;
 }
 
 // REFACTORED: Polymorphism
 interface Shape {
-  getArea(): number;
-  getPerimeter(): number;
+    double getArea();
+    double getPerimeter();
 }
 
 class Circle implements Shape {
-  constructor(private radius: number) {}
-  getArea(): number { return Math.PI * this.radius ** 2; }
-  getPerimeter(): number { return 2 * Math.PI * this.radius; }
+    private final double radius;
+    Circle(double radius) { this.radius = radius; }
+    public double getArea() { return Math.PI * radius * radius; }
+    public double getPerimeter() { return 2 * Math.PI * radius; }
 }
 ```
 
@@ -240,43 +249,43 @@ class Circle implements Shape {
 
 **Symptom:** Classes know too much about each other's internals.
 
-```typescript
+```java
 // SMELL
 class Order {
-  process() {
-    const inventory = new Inventory();
-    // Reaching into inventory's internals
-    for (const item of this.items) {
-      const stock = inventory.stockLevels[item.sku];
-      if (stock.quantity < item.quantity) {
-        throw new Error('Out of stock');
-      }
-      inventory.stockLevels[item.sku].quantity -= item.quantity;
+    void process() {
+        Inventory inventory = new Inventory();
+        // Reaching into inventory's internals
+        for (OrderItem item : items) {
+            Stock stock = inventory.stockLevels.get(item.getSku());
+            if (stock.getQuantity() < item.getQuantity()) {
+                throw new IllegalStateException("Out of stock");
+            }
+            inventory.stockLevels.get(item.getSku()).deduct(item.getQuantity());
+        }
     }
-  }
 }
 
 // REFACTORED: Tell, don't ask
 class Inventory {
-  reserve(items: OrderItem[]): ReserveResult {
-    // Inventory manages its own state
-    for (const item of items) {
-      if (!this.canReserve(item)) {
-        return ReserveResult.outOfStock(item);
-      }
+    ReserveResult reserve(List<OrderItem> items) {
+        // Inventory manages its own state
+        for (OrderItem item : items) {
+            if (!canReserve(item)) {
+                return ReserveResult.outOfStock(item);
+            }
+        }
+        deductStock(items);
+        return ReserveResult.success();
     }
-    this.deductStock(items);
-    return ReserveResult.success();
-  }
 }
 
 class Order {
-  process(inventory: Inventory) {
-    const result = inventory.reserve(this.items);
-    if (!result.isSuccess()) {
-      throw new OutOfStockError(result.failedItem);
+    void process(Inventory inventory) {
+        ReserveResult result = inventory.reserve(items);
+        if (!result.isSuccess()) {
+            throw new OutOfStockException(result.getFailedItem());
+        }
     }
-  }
 }
 ```
 
@@ -284,31 +293,31 @@ class Order {
 
 **Symptom:** "Just in case" abstractions that aren't used.
 
-```typescript
+```java
 // SMELL: Over-engineered for hypothetical needs
 interface PaymentProcessor {
-  process(): void;
-  rollback(): void;
-  audit(): void;
-  generateReport(): void;
-  scheduleRecurring(): void;
+    void process();
+    void rollback();
+    void audit();
+    void generateReport();
+    void scheduleRecurring();
 }
 
 class StripeProcessor implements PaymentProcessor {
-  process() { /* actual code */ }
-  rollback() { throw new Error('Not implemented'); }
-  audit() { throw new Error('Not implemented'); }
-  generateReport() { throw new Error('Not implemented'); }
-  scheduleRecurring() { throw new Error('Not implemented'); }
+    public void process() { /* actual code */ }
+    public void rollback() { throw new UnsupportedOperationException("Not implemented"); }
+    public void audit() { throw new UnsupportedOperationException("Not implemented"); }
+    public void generateReport() { throw new UnsupportedOperationException("Not implemented"); }
+    public void scheduleRecurring() { throw new UnsupportedOperationException("Not implemented"); }
 }
 
 // REFACTORED: YAGNI
 interface PaymentProcessor {
-  process(): void;
+    void process();
 }
 
 class StripeProcessor implements PaymentProcessor {
-  process() { /* actual code */ }
+    public void process() { /* actual code */ }
 }
 // Add other methods when actually needed
 ```
