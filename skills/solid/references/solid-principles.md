@@ -300,3 +300,8 @@ pass things that are not their concern, or hides things that should be visible.
 Every statement in a method should operate at the same level of abstraction. If `main()` mixes high-level wiring 
 (`new EdfParser()`) with low-level detail (`if (!dir.isDirectory())`), extract the detail into the class that owns that 
 concern — not into a private helper that stays in `main`.
+
+### 6. Don't sort where you don't own the ordering decision (SRP)
+A class that provides access to a collection should not impose ordering unless that ordering is its core responsibility. 
+Sorting alphabetically in `FileDirectory.listFiles()` violated SRP - the directory shouldn't decide how files are ordered. 
+Return in natural order and let consumers sort by their criteria (date, size, name, etc.).

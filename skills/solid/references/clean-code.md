@@ -404,3 +404,30 @@ class OrderProcessor {
     private ProcessResult save(Order order) { ... }
 }
 ```
+
+---
+
+## Type Clarity
+
+### Use explicit types over `var` when type isn't obvious
+
+Use `List<File> files = fileDirectory.listFiles()` instead of `var files = ...` when the right-hand side type isn't 
+immediately visible from the expression. Reserve `var` for cases where the type is obvious from the literal.
+
+```java
+// GOOD: Type obvious from literal
+var name = "Alice";
+var count = 0;
+var price = new BigDecimal("100.00");
+
+// BAD: Type not obvious
+var files = fileDirectory.listFiles();           // What type?
+var result = service.calculateSomething(data);   // What type?
+
+// GOOD: Explicit types when not obvious
+List<File> files = fileDirectory.listFiles();
+CalculationResult result = service.calculateSomething(data);
+```
+
+Explicit types improve readability, especially in tests where clarity matters most. The reader shouldn't have to 
+infer types or jump to method definitions to understand variable types.

@@ -433,3 +433,34 @@ Order order = new OrderBuilder()
 | No assertions | False confidence | Always assert something meaningful |
 | Testing trivial code | Wasted effort | Focus on logic and edge cases |
 | Slow tests | Reduced feedback | Optimize, use unit tests |
+| Mirroring implementation | Test becomes implementation | Verify outcomes, not algorithms |
+
+### Tests Shouldn't Mirror Implementation Logic
+
+When verifying behavior, don't reimplement the method's logic in the test. Tests should verify outcomes, not copy algorithms.
+
+```java
+// BAD: Mirrors implementation
+@Test
+void getAbsolutePath_returnsPath() {
+    FileDirectory dir = new FileDirectory(tempDir);
+    String result = dir.getAbsolutePath();
+
+    // Reimplements exactly what the method does
+    assertEquals(tempDir.toAbsolutePath().normalize().toString(), result);
+}
+
+// GOOD: Verifies outcome without copying logic
+@Test
+void getAbsolutePath_returnsAbsolutePath() {
+    FileDirectory dir = new FileDirectory(tempDir);
+    String absolutePath = dir.getAbsolutePath();
+
+    // Verifies properties of the result
+    assertNotNull(absolutePath);
+    assertTrue(absolutePath.endsWith(tempDir.getFileName().toString()));
+}
+```
+
+The first test breaks if the implementation changes how it builds the path. 
+The second test verifies the actual requirement: that an absolute path is returned.

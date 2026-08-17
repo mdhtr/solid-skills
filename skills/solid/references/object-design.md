@@ -345,3 +345,59 @@ order.items.add(new OrderItem(...)); // Bypasses validation!
 // GOOD: Through the root
 order.addItem(product, 2); // Validation happens
 ```
+
+---
+
+## API Design Lessons
+
+### Accept modern types, let caller handle conversion
+Design public APIs with modern types (`Path`, `Instant`) to clearly signal what you expect. Let the caller handle 
+conversion from primitive strings, managing parsing exceptions (`InvalidPathException`) as their own concern. 
+This separates path parsing from domain validation.
+
+```java
+// GOOD: Accept Path, caller converts from String
+
+// Caller handles path parsing
+public static void main(String[] args) {
+    try {
+        Path dataPath = Paths.get(DATA_DIR);  // Caller owns conversion
+        FileDirectory directory = new FileDirectory(dataPath);
+    } catch (InvalidPathException e) {
+        System.err.println("Invalid path: " + e.getMessage());
+        System.exit(1);
+    }
+}
+
+// Class accepts validated Path
+class FileDirectory {
+    FileDirectory(Path path) {
+        this.directory = path.toAbsolutePath().normalize().toFile();
+        // Only validates directory existence, not path syntax
+    }
+}
+```
+
+### Distinguish error causes with specific messages
+Different failure modes deserve different error messages. If you can distinguish "path doesn't exist" from "path is a file", 
+do so. Package-private constants (`ERRORMESSAGE_PATH_DOES_NOT_EXIST`) shared with tests prevent message drift while 
+maintaining the specific distinction users need for debugging.
+
+```java
+static final String ERRORMESSAGE_PATH_DOES_NOT_EXIST = "Path does not exist";
+static final String ERRORMESSAGE_PATH_NOT_A_DIRECTORY = "Path is not a directory";
+
+public FileDirectory(Path path) {
+    if (!directory.exists()) {
+        throw new IllegalArgumentException(ERRORMESSAGE_PATH_DOES_NOT_EXIST + ": " + path);
+    }
+    if (!directory.isDirectory()) {
+        throw new IllegalArgumentException(ERRORMESSAGE_PATH_NOT_A_DIRECTORY + ": " + path);
+    }
+}
+```
+
+### Fail-fast in constructors for initialization-time failures
+Constructor validation is appropriate when an invalid argument prevents the program from running. A missing directory 
+is a fatal config error at startup, not optional behavior. Use `try-catch` in `main()` for these, not `Optional` return 
+types that suggest the caller can proceed without the object.
